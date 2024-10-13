@@ -8,7 +8,7 @@ import lombok.Value;
 import java.util.UUID;
 
 @Value
-@Builder
+@Builder(toBuilder = true) // Enable toBuilder for creating modified copies
 @ToString
 
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)

@@ -3,6 +3,7 @@ package com.tpastushok.cosmocats.service.implementation;
 import com.tpastushok.cosmocats.domain.product.Product;
 import com.tpastushok.cosmocats.service.exception.NoSuchProductException;
 import com.tpastushok.cosmocats.service.inerfaces.ProductService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -11,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class InMemoryProductService implements ProductService {
     private final List<Product> products = mockProductsList();
 
@@ -22,15 +24,16 @@ public class InMemoryProductService implements ProductService {
     @Override
     public Product getProduct(UUID id) {
         return products.stream().filter(product -> product.getId().equals(id)).findFirst()
-                .orElseThrow(() -> new NoSuchProductException("Product with id: " + id + "does not exist!"));
+                .orElseThrow(() -> {
+                    log.error("Product with id {} not found!", id);
+                    return new NoSuchProductException("Product with id: " + id + "does not exist!");
+                });
     }
 
     @Override
     public Product createProduct(Product product) {
         // Check if the product already exists by id
-        Optional<Product> existingProduct = products.stream()
-                .filter(p -> p.getId().equals(product.getId()))
-                .findFirst();
+        Optional<Product> existingProduct = findProductById(product.getId());
 
         if (existingProduct.isPresent()) {
             // If the product exists, update it
@@ -45,13 +48,40 @@ public class InMemoryProductService implements ProductService {
                     .build();
 
             // Replace the old product with the updated one
-            products.remove(oldProduct);
-            products.add(updatedProduct);
-            return updatedProduct; // Return the updated product
+            Product result = replaceProduct(oldProduct, updatedProduct);
+            log.info("Product with id: {} updated successfully.", product.getId());
+            return result; // Return the updated product
         } else {
             // If the product doesn't exist, add the new product to the list
             products.add(product);
+            log.info("Product with id: {} created successfully.", product.getId());
             return product; // Return the newly added product
+        }
+    }
+
+    @Override
+    public Product updateProduct(UUID id, Product newProductData) {
+        // Check if the product already exists by id
+        Optional<Product> existingProduct = findProductById(id);
+
+        if (existingProduct.isEmpty()) {
+            String errorMessage = "Product with id: " + id + "does not exist. There is nothing to update!";
+            log.error(errorMessage);
+            throw new NoSuchProductException(errorMessage);
+        } else {
+            // Update fields of existed product
+            Product oldProduct = existingProduct.get();
+
+            Product updatedProduct = oldProduct.toBuilder()
+                    .categoryId(newProductData.getCategoryId())
+                    .name(newProductData.getName())
+                    .description(newProductData.getDescription())
+                    .price(newProductData.getPrice())
+                    .build();
+
+            replaceProduct(oldProduct, updatedProduct);
+            log.info("Product with id: {} was updated successfully.", id);
+            return updatedProduct;
         }
     }
 
@@ -59,8 +89,20 @@ public class InMemoryProductService implements ProductService {
     public void deleteProduct(UUID id) {
         Product productToDelete = getProduct(id);
         products.remove(productToDelete);
+        log.info("Product with id: {} was deleted successfully.", id);
     }
 
+    private Optional<Product> findProductById(UUID id) {
+        return products.stream()
+                .filter(p -> p.getId().equals(id))
+                .findFirst();
+    }
+
+    private Product replaceProduct(Product oldProduct, Product replacement) {
+        products.remove(oldProduct);
+        products.add(replacement);
+        return replacement;
+    }
 
     private List<Product> mockProductsList() {
         List<Product> result = List.of(
