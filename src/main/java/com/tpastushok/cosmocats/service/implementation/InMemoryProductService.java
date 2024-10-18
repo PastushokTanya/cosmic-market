@@ -26,7 +26,7 @@ public class InMemoryProductService implements ProductService {
         return products.stream().filter(product -> product.getId().equals(id)).findFirst()
                 .orElseThrow(() -> {
                     log.error("Product with id {} not found!", id);
-                    return new NoSuchProductException("Product with id: " + id + "does not exist!");
+                    return new NoSuchProductException("Product with id: " + id + " does not exist!");
                 });
     }
 

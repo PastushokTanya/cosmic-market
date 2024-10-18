@@ -1,5 +1,6 @@
 package com.tpastushok.cosmocats.dto.product;
 
+import com.tpastushok.cosmocats.dto.validation.CosmicWordCheck;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -21,6 +22,7 @@ public class ProductDto {
 
     @NotNull(message = "Product name cannot be null")
     @NotBlank(message = "Product name cannot be empty")
+    @CosmicWordCheck // Enforcing that 'name' should contain a cosmic term
     String name;
 
     String description;
