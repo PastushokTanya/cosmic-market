@@ -1,39 +1,22 @@
-package com.tpastushok.cosmocats.service.implementation;
+package com.tpastushok.cosmocats.data;
 
 import com.tpastushok.cosmocats.domain.product.Product;
 import com.tpastushok.cosmocats.service.exception.NoSuchProductException;
-import com.tpastushok.cosmocats.service.inerfaces.ProductService;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@Service
-@Slf4j
-public class InMemoryProductService implements ProductService {
+@Repository
+public class InMemoryProductRepository implements ProductRepository {
     private final List<Product> products = mockProductsList();
 
     @Override
-    public List<Product> getProducts() {
-        return products;
-    }
-
-    @Override
-    public Product getProduct(UUID id) {
-        return products.stream().filter(product -> product.getId().equals(id)).findFirst()
-                .orElseThrow(() -> {
-                    log.error("Product with id {} not found!", id);
-                    return new NoSuchProductException("Product with id: " + id + " does not exist!");
-                });
-    }
-
-    @Override
-    public Product createProduct(Product product) {
+    public Product addProduct(Product product) {
         // Check if the product already exists by id
-        Optional<Product> existingProduct = findProductById(product.getId());
+        Optional<Product> existingProduct = getById(product.getId());
 
         if (existingProduct.isPresent()) {
             // If the product exists, update it
@@ -48,26 +31,26 @@ public class InMemoryProductService implements ProductService {
                     .build();
 
             // Replace the old product with the updated one
-            Product result = replaceProduct(oldProduct, updatedProduct);
-            log.info("Product with id: {} updated successfully.", product.getId());
-            return result; // Return the updated product
+            return replaceProduct(oldProduct, updatedProduct); // Return the updated product
         } else {
             // If the product doesn't exist, add the new product to the list
             products.add(product);
-            log.info("Product with id: {} created successfully.", product.getId());
             return product; // Return the newly added product
         }
     }
 
     @Override
-    public Product updateProduct(UUID id, Product newProductData) {
+    public Optional<Product> getById(UUID id) {
+        return products.stream().filter(product -> product.getId().equals(id)).findFirst();
+    }
+
+    @Override
+    public Product update(UUID id, Product newProductData) {
         // Check if the product already exists by id
-        Optional<Product> existingProduct = findProductById(id);
+        Optional<Product> existingProduct = getById(id);
 
         if (existingProduct.isEmpty()) {
-            String errorMessage = "Product with id: " + id + "does not exist. There is nothing to update!";
-            log.error(errorMessage);
-            throw new NoSuchProductException(errorMessage);
+            throw new NoSuchProductException("Product with id: " + id + "does not exist. There is nothing to update!");
         } else {
             // Update fields of existed product
             Product oldProduct = existingProduct.get();
@@ -79,29 +62,28 @@ public class InMemoryProductService implements ProductService {
                     .price(newProductData.getPrice())
                     .build();
 
-            replaceProduct(oldProduct, updatedProduct);
-            log.info("Product with id: {} was updated successfully.", id);
-            return updatedProduct;
+            return replaceProduct(oldProduct, updatedProduct);
         }
     }
 
     @Override
-    public void deleteProduct(UUID id) {
-        Product productToDelete = getProduct(id);
-        products.remove(productToDelete);
-        log.info("Product with id: {} was deleted successfully.", id);
+    public void delete(UUID id) {
+        Optional<Product> productToDelete = getById(id);
+        if (productToDelete.isPresent()) {
+            products.remove(productToDelete.get());
+        } else {
+            throw new NoSuchProductException("Product with id: " + id + "does not exist. There is nothing to delete!");
+        }
     }
 
-    private Optional<Product> findProductById(UUID id) {
-        return products.stream()
-                .filter(p -> p.getId().equals(id))
-                .findFirst();
+    @Override
+    public List<Product> getAll() {
+        return products;
     }
 
     private Product replaceProduct(Product oldProduct, Product replacement) {
-        products.remove(oldProduct);
-        products.add(replacement);
-        return replacement;
+        delete(oldProduct.getId());
+        return addProduct(replacement);
     }
 
     private List<Product> mockProductsList() {
