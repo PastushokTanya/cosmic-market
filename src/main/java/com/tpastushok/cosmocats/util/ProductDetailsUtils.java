@@ -3,7 +3,6 @@ package com.tpastushok.cosmocats.util;
 import java.net.URI;
 import java.util.List;
 
-import com.tpastushok.cosmocats.service.exception.ParamsViolationDetails;
 import lombok.experimental.UtilityClass;
 import org.springframework.http.ProblemDetail;
 

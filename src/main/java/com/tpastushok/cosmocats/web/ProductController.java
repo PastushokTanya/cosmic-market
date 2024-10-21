@@ -6,6 +6,7 @@ import com.tpastushok.cosmocats.service.inerfaces.ProductService;
 import com.tpastushok.cosmocats.web.mapper.ProductDtoMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,7 +52,8 @@ public class ProductController {
     // create new Product
     @PostMapping
     public ResponseEntity<ProductDto> createProduct(@Valid @RequestBody ProductCreationDto productCreationDto) {
-        return ResponseEntity.ok(mapper.toProductDto(
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                mapper.toProductDto(
                         service.createProduct(
                                 mapper.toProduct(productCreationDto)
                         )

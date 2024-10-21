@@ -1,4 +1,4 @@
-package com.tpastushok.cosmocats.service.exception;
+package com.tpastushok.cosmocats.util;
 
 import lombok.Builder;
 import lombok.Value;

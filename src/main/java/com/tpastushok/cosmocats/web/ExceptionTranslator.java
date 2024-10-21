@@ -1,7 +1,7 @@
 package com.tpastushok.cosmocats.web;
 
 import com.tpastushok.cosmocats.service.exception.NoSuchProductException;
-import com.tpastushok.cosmocats.service.exception.ParamsViolationDetails;
+import com.tpastushok.cosmocats.util.ParamsViolationDetails;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
@@ -22,6 +22,19 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.ProblemDetail.forStatusAndDetail;
 
+/**
+ * @ControllerAdvice annotation is used to define a global exception handler
+ * across multiple controllers in the application.
+ *
+ * This class, ExceptionTranslator, handles exceptions thrown from any controller,
+ * providing a centralized way to manage error responses. Using @ControllerAdvice
+ * allows us to capture specific exceptions, like NoSuchProductException, and customize
+ * the response to the client (e.g., setting HTTP status, message, and problem details).
+ *
+ * This approach improves code maintainability by keeping exception handling logic
+ * separate from controller classes, and it can be easily expanded to handle other
+ * exceptions as needed.
+ */
 @ControllerAdvice
 @Slf4j
 public class ExceptionTranslator extends ResponseEntityExceptionHandler {

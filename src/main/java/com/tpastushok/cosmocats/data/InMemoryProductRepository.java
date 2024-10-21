@@ -9,6 +9,20 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * @Repository annotation marks this class as a Spring Repository, allowing it to be
+ * recognized as a data access layer component and managed as a Spring Bean.
+ *
+ * This class currently serves as an in-memory repository for managing Product data,
+ * which is useful for development, testing, or prototyping without a real database.
+ *
+ * In the future, this repository can be replaced with a database-backed implementation
+ * (e.g., using JPA or JDBC). Using the @Repository annotation here not only enables
+ * Spring's exception translation (converting database-specific exceptions into
+ * Spring's DataAccessException hierarchy), but also ensures a consistent and modular
+ * design where we can switch to a persistent storage solution without altering
+ * higher-level service classes.
+ */
 @Repository
 public class InMemoryProductRepository implements ProductRepository {
     private final List<Product> products = mockProductsList();
