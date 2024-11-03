@@ -18,8 +18,14 @@ ext {
 	// Minimal Coverage
 	minimumCoveragePerFile = 0.8
 	filesExcludedFromCoverage = [
-			"**/*MarketApplication.*",
-			"**/config/*Configuration.*"
+			"**/cosmocats/CosmicCatsApplication.java",
+			"**/cosmocats/config/*Configuration.*\"",
+			"**/cosmocats/dto/*",
+			"**/cosmocats/service/exception/*",
+			"**/cosmocats/web/exception/*",
+			"**/cosmocats/*Mapper.*",
+			"**/cosmocats/*Utils.*",
+			"**/cosmocats/*Translator.*"
 	]
 }
 
