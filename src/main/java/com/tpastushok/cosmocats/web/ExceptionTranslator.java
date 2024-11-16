@@ -1,6 +1,7 @@
 package com.tpastushok.cosmocats.web;
 
 import com.tpastushok.cosmocats.service.exception.NoSuchProductException;
+import com.tpastushok.cosmocats.service.exception.ThirdPartyServiceException;
 import com.tpastushok.cosmocats.util.ParamsViolationDetails;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -18,8 +19,7 @@ import java.util.List;
 
 import static com.tpastushok.cosmocats.util.ProductDetailsUtils.getValidationErrorsProblemDetail;
 import static java.net.URI.create;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.ProblemDetail.forStatusAndDetail;
 
 /**
@@ -44,6 +44,15 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
         ProblemDetail problemDetail = forStatusAndDetail(NOT_FOUND, ex.getMessage());
         problemDetail.setType(create("product-not-found"));
         problemDetail.setTitle("Product Not Found");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(ThirdPartyServiceException.class)
+    ProblemDetail handleThirdPartyServiceException(ThirdPartyServiceException ex) {
+        log.error("Third-party service exception: {}", ex.getMessage(), ex);
+        ProblemDetail problemDetail = forStatusAndDetail(INTERNAL_SERVER_ERROR, ex.getMessage());
+        problemDetail.setType(create("third-party-service-error"));
+        problemDetail.setTitle("Error communicating with third-party service");
         return problemDetail;
     }
 

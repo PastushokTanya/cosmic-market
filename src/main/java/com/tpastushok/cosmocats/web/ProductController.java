@@ -1,7 +1,9 @@
 package com.tpastushok.cosmocats.web;
 
+import com.tpastushok.cosmocats.dto.competitors.observer.CompetitorsObserverResponseDto;
 import com.tpastushok.cosmocats.dto.product.ProductCreationDto;
 import com.tpastushok.cosmocats.dto.product.ProductDto;
+import com.tpastushok.cosmocats.service.inerfaces.CompetitorObserverService;
 import com.tpastushok.cosmocats.service.inerfaces.ProductService;
 import com.tpastushok.cosmocats.web.mapper.ProductDtoMapper;
 import jakarta.validation.Valid;
@@ -15,11 +17,12 @@ import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/products")
+@RequestMapping("${application.base-url}")
 public class ProductController {
 
     private final ProductService service;
     private final ProductDtoMapper mapper;
+    private final CompetitorObserverService competitorObserverService;
 
     @GetMapping
     public ResponseEntity<List<ProductDto>> getProducts() {
@@ -59,5 +62,10 @@ public class ProductController {
                         )
                 )
         );
+    }
+
+    @GetMapping("/{id}/competitor-price-observer")
+    public ResponseEntity<CompetitorsObserverResponseDto> getOtherStoresPrices(@PathVariable UUID id) {
+        return ResponseEntity.ok(competitorObserverService.observeOtherStorePrices(id));
     }
 }

@@ -1,0 +1,18 @@
+networks:
+  services:
+    name: competitors-price-observer-network
+
+services:
+  competitors-price-observer:
+    container_name: competitors-price-observer
+    build:
+      context: ./competitors-price-observer
+    networks:
+      - services
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/__admin/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "8081:8080"

@@ -19,13 +19,14 @@ ext {
 	minimumCoveragePerFile = 0.8
 	filesExcludedFromCoverage = [
 			"**/cosmocats/CosmicCatsApplication.java",
-			"**/cosmocats/config/*Configuration.*\"",
+			"**/cosmocats/config/*Configuration.*",
 			"**/cosmocats/dto/*",
 			"**/cosmocats/service/exception/*",
 			"**/cosmocats/web/exception/*",
 			"**/cosmocats/*Mapper.*",
 			"**/cosmocats/*Utils.*",
-			"**/cosmocats/*Translator.*"
+			"**/cosmocats/*Translator.*",
+			"**/cosmocats/*CompetitorsObserverService*"
 	]
 }
 
@@ -43,16 +44,30 @@ apply from: "${rootProject.projectDir}/gradle/test.gradle"
 apply from: "${rootProject.projectDir}/gradle/jacoco.gradle"
 
 dependencies {
+	// Spring REST and WebFlux for RestClient
 	implementation 'org.springframework.boot:spring-boot-starter-data-rest'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+	// Validation API
 	implementation 'jakarta.validation:jakarta.validation-api:3.1.0'
+
+	// Lombok and MapStruct
 	implementation 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
 	implementation 'org.mapstruct:mapstruct:1.6.2'
 	compileOnly 'org.projectlombok:lombok:1.18.34'
 	annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
 	annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.2'
 	annotationProcessor 'org.projectlombok:lombok:1.18.34'
+
+	// Spring Retry for retry logic
+	implementation 'org.springframework.retry:spring-retry'
+	implementation 'org.springframework:spring-aspects'
+
+	// Spring Boot Starter Validation
 	implementation 'org.springframework.boot:spring-boot-starter-validation:3.3.4'
+
+	// Test dependencies
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
 	testImplementation 'org.springframework.security:spring-security-test'
@@ -63,5 +78,10 @@ dependencies {
 	testAnnotationProcessor 'org.projectlombok:lombok:1.18.34'
 	testAnnotationProcessor 'org.mapstruct:mapstruct-processor:1.6.2'
 	testImplementation 'org.projectlombok:lombok:1.18.34'
+
+	// Development tools
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+	// OpenAPI Documentation
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
 }

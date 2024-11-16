@@ -64,7 +64,7 @@ public class InMemoryProductRepository implements ProductRepository {
         Optional<Product> existingProduct = getById(id);
 
         if (existingProduct.isEmpty()) {
-            throw new NoSuchProductException("Product with id: " + id + "does not exist. There is nothing to update!");
+            throw new NoSuchProductException("Product with id: " + id + " does not exist. There is nothing to update!");
         } else {
             // Update fields of existed product
             Product oldProduct = existingProduct.get();
@@ -86,7 +86,7 @@ public class InMemoryProductRepository implements ProductRepository {
         if (productToDelete.isPresent()) {
             products.remove(productToDelete.get());
         } else {
-            throw new NoSuchProductException("Product with id: " + id + "does not exist. There is nothing to delete!");
+            throw new NoSuchProductException("Product with id: " + id + " does not exist. There is nothing to delete!");
         }
     }
 

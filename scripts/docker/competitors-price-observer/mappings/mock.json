@@ -1,0 +1,68 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/competitors-price-observer/v1/product/(.*)/prices"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "transformers": ["response-template"],
+    "jsonBody": {
+      "productUuid": "{{request.pathSegments.[3]}}",
+      "stores": [
+        {
+          "storeName": "Galaxy Mart",
+          "regularPrice": 20.50,
+          "markedDownPrice": 15.30
+        },
+        {
+          "storeName": "Nebula Bazaar",
+          "regularPrice": 22.75,
+          "markedDownPrice": 18.99
+        },
+        {
+          "storeName": "Starline Shop",
+          "regularPrice": 19.99,
+          "markedDownPrice": 14.49
+        },
+        {
+          "storeName": "Asteroid Outlet",
+          "regularPrice": 25.99,
+          "markedDownPrice": 19.50
+        },
+        {
+          "storeName": "Cosmic Emporium",
+          "regularPrice": 30.00,
+          "markedDownPrice": 25.00
+        },
+        {
+          "storeName": "Quasar Deals",
+          "regularPrice": 18.49,
+          "markedDownPrice": 13.75
+        },
+        {
+          "storeName": "Starlight Savings",
+          "regularPrice": 21.00,
+          "markedDownPrice": 16.80
+        },
+        {
+          "storeName": "Nova Bargains",
+          "regularPrice": 24.99,
+          "markedDownPrice": 20.49
+        },
+        {
+          "storeName": "Orbit Outfitters",
+          "regularPrice": 28.45,
+          "markedDownPrice": 23.99
+        },
+        {
+          "storeName": "Eclipse Market",
+          "regularPrice": 26.75,
+          "markedDownPrice": 21.25
+        }
+      ]
+    }
+  }
+}
