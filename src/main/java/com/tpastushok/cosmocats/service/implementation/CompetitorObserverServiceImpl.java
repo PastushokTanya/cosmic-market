@@ -4,6 +4,7 @@ import com.tpastushok.cosmocats.dto.competitors.observer.CompetitorsObserverResp
 import com.tpastushok.cosmocats.service.exception.ThirdPartyServiceException;
 import com.tpastushok.cosmocats.service.inerfaces.CompetitorObserverService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
@@ -25,7 +26,6 @@ public class CompetitorObserverServiceImpl implements CompetitorObserverService 
 
     @Override
     public CompetitorsObserverResponseDto observeOtherStorePrices(UUID productId) {
-        // Build the URL dynamically by replacing the UUID placeholder in the wildcard URL
         String url = competitorsPriceObserverUrlWildcard.replace("{productId}", productId.toString());
 
         try {
@@ -38,11 +38,19 @@ public class CompetitorObserverServiceImpl implements CompetitorObserverService 
                     .onErrorMap(WebClientResponseException.class, ex -> {
                         log.error("Error response from third-party service for productId: {} - Status: {} - Body: {}",
                                 productId, ex.getStatusCode(), ex.getResponseBodyAsString());
-                        return new ThirdPartyServiceException("Error retrieving data from third-party service", ex);
+                        return new ThirdPartyServiceException(
+                                ex.getStatusCode(),
+                                String.format("Error while fetching data for productId %s", productId),
+                                ex
+                        );
                     })
                     .onErrorMap(Exception.class, ex -> {
                         log.error("Unexpected error occurred while observing prices for productId: {}", productId, ex);
-                        return new ThirdPartyServiceException("Unexpected error occurred while observing other store prices", ex);
+                        return new ThirdPartyServiceException(
+                                HttpStatus.INTERNAL_SERVER_ERROR,
+                                "Unexpected error occurred while observing other store prices",
+                                ex
+                        );
                     })
                     .block();
 

@@ -1,11 +1,16 @@
 package com.tpastushok.cosmocats.service.exception;
 
-public class ThirdPartyServiceException extends RuntimeException{
-    public ThirdPartyServiceException(String s) {
-        super(s);
+import org.springframework.http.HttpStatusCode;
+
+public class ThirdPartyServiceException extends RuntimeException {
+
+    private static final String ERROR_MESSAGE_PATTERN = "Third-party service error (HttpStatus: %s): %s";
+
+    public ThirdPartyServiceException(HttpStatusCode status, String detailedMessage) {
+        super(String.format(ERROR_MESSAGE_PATTERN, status, detailedMessage));
     }
 
-    public ThirdPartyServiceException(String message, Throwable cause) {
-        super(message, cause);
+    public ThirdPartyServiceException(HttpStatusCode status, String detailedMessage, Throwable cause) {
+        super(String.format(ERROR_MESSAGE_PATTERN, status, detailedMessage), cause);
     }
 }
