@@ -1,0 +1,208 @@
+openapi: 3.0.1
+info:
+  title: Product API
+  version: 1.0.0
+paths:
+  /api/v1/products:
+    get:
+      summary: List of all Products
+      tags:
+      - Products
+      operationId: getProducts
+      responses:
+        "200":
+          description: List of all Products
+          content:
+            application/hal+json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductDto"
+    post:
+      summary: Create a new Product
+      tags:
+      - Products
+      operationId: createProduct
+      requestBody:
+        description: Product data to create a new Product
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductCreationDto"
+        required: true
+      responses:
+        "201":
+          description: Product created successfully
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ProductDto"
+        "400":
+          description: Invalid input, some of the fields passed failed validation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/products/{id}:
+    get:
+      summary: Get a Product by its UUID
+      tags:
+      - Products
+      operationId: getProduct
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductDto"
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    put:
+      tags:
+      - Products
+      operationId: updateProduct
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductCreationDto"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ProductDto"
+    delete:
+      tags:
+      - Products
+      operationId: deleteProduct
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+  /api/v1/products/{id}/competitor-price-observer:
+    get:
+      summary: List market competitors who sell the same Product in all the galaxies
+      tags:
+      - Product
+      - MarketCompetitor
+      operationId: getOtherStoresPrices
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitorsObserverResponseDto"
+components:
+  schemas:
+    ProductCreationDto:
+      required:
+      - categoryId
+      - name
+      type: object
+      properties:
+        categoryId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: double
+    ProductDto:
+      required:
+      - categoryId
+      - id
+      - name
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        categoryId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: double
+    CompetitorStorePrice:
+      type: object
+      properties:
+        storeName:
+          type: string
+        regularPrice:
+          type: number
+          format: double
+        markedDownPrice:
+          type: number
+          format: double
+    CompetitorsObserverResponseDto:
+      type: object
+      properties:
+        productUuid:
+          type: string
+          format: uuid
+        stores:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompetitorStorePrice"
+    ProblemDetail:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+          example: "product-not-found"
+        title:
+          type: string
+          example: "Product Not Found"
+        status:
+          type: integer
+          example: 404
+        detail:
+          type: string
+          example: "Product with id: id does not exist. There is nothing to delete!"
+        "instance":
+          type: string
+          example: "/api/v1/products/77777777-0000-0000-0000-000000000010"
