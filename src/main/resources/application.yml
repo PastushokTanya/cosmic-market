@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: cosmic-cats
+  profiles:
+    active: local
+server:
+  port: 8080
+
+# application props
+application:
+  base-url: /api/v1/products
+  integration:
+    rest-client:
+      connect-timeout-millis: 500
+      read-timeout-millis: 2000
+      retries: 2
+      timeout-on-failure-millis: 1000
+
+  competitors-price-observer:
+    url-wildcard: http://localhost:8081/competitors-price-observer/v1/product/{productId}/prices
+
+  feature:
+    toggles:
+      kitty-products: true
+      junior-cat-products: false
+      senior-cat-products: false
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+application:
+  feature:
+    toggles:
+      kitty-products: true
+      junior-cat-products: true
+      senior-cat-products: true

@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static com.tpastushok.cosmocats.domain.CustomerType.*;
+
 /**
  * @Repository annotation marks this class as a Spring Repository, allowing it to be
  * recognized as a data access layer component and managed as a Spring Bean.
@@ -74,6 +76,7 @@ public class InMemoryProductRepository implements ProductRepository {
                     .name(newProductData.getName())
                     .description(newProductData.getDescription())
                     .price(newProductData.getPrice())
+                    .targetAudience(newProductData.getTargetAudience())
                     .build();
 
             return replaceProduct(oldProduct, updatedProduct);
@@ -108,6 +111,7 @@ public class InMemoryProductRepository implements ProductRepository {
                         .name("Anti-Gravity Yarn Ball")
                         .description("A yarn ball that floats in zero gravity, perfect for cosmic playtime.")
                         .price(49.99)
+                        .targetAudience(KITTY)
                         .build(),
 
                 Product.builder()
@@ -116,6 +120,7 @@ public class InMemoryProductRepository implements ProductRepository {
                         .name("Cosmic Milk")
                         .description("A refreshing drink made from milk harvested from cosmic cows.")
                         .price(15.99)
+                        .targetAudience(JUNIOR_CAT)
                         .build(),
 
                 Product.builder()
@@ -124,6 +129,7 @@ public class InMemoryProductRepository implements ProductRepository {
                         .name("Stardust Blanket")
                         .description("A warm blanket infused with stardust for cozy nights in space.")
                         .price(99.99)
+                        .targetAudience(SENIOR_CAT)
                         .build(),
 
                 Product.builder()
@@ -132,6 +138,7 @@ public class InMemoryProductRepository implements ProductRepository {
                         .name("Galaxy Catnip")
                         .description("Specially cultivated catnip that provides a euphoric space experience.")
                         .price(12.99)
+                        .targetAudience(KITTY)
                         .build(),
 
                 Product.builder()
@@ -140,6 +147,7 @@ public class InMemoryProductRepository implements ProductRepository {
                         .name("Nebula Scratching Post")
                         .description("A scratching post made from sturdy asteroid materials.")
                         .price(79.99)
+                        .targetAudience(SENIOR_CAT)
                         .build()
         );
 

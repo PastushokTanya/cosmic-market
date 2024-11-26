@@ -1,6 +1,7 @@
 package com.tpastushok.cosmocats.service.implementation;
 
 import com.tpastushok.cosmocats.data.ProductRepository;
+import com.tpastushok.cosmocats.domain.CustomerType;
 import com.tpastushok.cosmocats.domain.product.Product;
 import com.tpastushok.cosmocats.service.exception.NoSuchProductException;
 import com.tpastushok.cosmocats.service.inerfaces.ProductService;
@@ -32,6 +33,11 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<Product> getProducts() {
         return productRepository.getAll();
+    }
+
+    @Override
+    public List<Product> getProductsForTargetAudience(CustomerType customerType) {
+        return getProducts().stream().filter(p -> p.getTargetAudience() == customerType).toList();
     }
 
     @Override

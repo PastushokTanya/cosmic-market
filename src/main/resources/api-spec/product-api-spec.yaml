@@ -128,6 +128,72 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CompetitorsObserverResponseDto"
+  /api/v1/products/kitty-products:
+    get:
+      summary: List all the products for kitties (who are tiny chaos machines)
+      tags:
+        - Product
+        - Audience
+      operationId: getProductsForKitties
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductDto"
+        "404":
+          description: Functionality is disabled by Feature Toggle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/products/junior-cat-products:
+    get:
+      summary: List all the products for junior cats (who are feline teens, cute but rebellious)
+      tags:
+        - Product
+        - Audience
+      operationId: getProductsForJuniorCats
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductDto"
+        "404":
+          description: Functionality is disabled by Feature Toggle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/products/senior-cat-products:
+    get:
+      summary: List all the products for senior cats (who are mature meowsters of the universe)
+      tags:
+        - Product
+        - Audience
+      operationId: getProductsForSeniorCats
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductDto"
+        "404":
+          description: Functionality is disabled by Feature Toggle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
 components:
   schemas:
     ProductCreationDto:
@@ -146,6 +212,12 @@ components:
         price:
           type: number
           format: double
+        targetAudience:
+          type: string
+          enum:
+          - CustomerType.KITTY(customerTypeName=kitty)
+          - CustomerType.JUNIOR_CAT(customerTypeName=junior-cat)
+          - CustomerType.SENIOR_CAT(customerTypeName=senior-cat)
     ProductDto:
       required:
       - categoryId
@@ -166,6 +238,12 @@ components:
         price:
           type: number
           format: double
+        targetAudience:
+          type: string
+          enum:
+          - CustomerType.KITTY(customerTypeName=kitty)
+          - CustomerType.JUNIOR_CAT(customerTypeName=junior-cat)
+          - CustomerType.SENIOR_CAT(customerTypeName=senior-cat)
     CompetitorStorePrice:
       type: object
       properties:

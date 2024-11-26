@@ -1,5 +1,6 @@
 package com.tpastushok.cosmocats.dto.product;
 
+import com.tpastushok.cosmocats.domain.CustomerType;
 import com.tpastushok.cosmocats.dto.validation.CosmicWordCheck;
 import com.tpastushok.cosmocats.dto.validation.ExtendedValidation;
 import jakarta.validation.GroupSequence;
@@ -26,4 +27,6 @@ public class ProductCreationDto {
 
     @Positive(message = "Price must be greater than 0")
     Double price;
+
+    CustomerType targetAudience;
 }

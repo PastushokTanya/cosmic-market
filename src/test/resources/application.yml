@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: cosmic-cats
+
+
+# application props
+application:
+  base-url: /api/v1/products
+  competitors-price-observer:
+    url-wildcard: http://localhost:8081/competitors-price-observer/v1/product/{productId}/prices
+  feature:
+    toggles:
+      kitty-products: false
+      junior-cat-products: true
+      senior-cat-products: true

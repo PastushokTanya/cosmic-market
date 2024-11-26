@@ -1,5 +1,6 @@
 package com.tpastushok.cosmocats.web;
 
+import com.tpastushok.cosmocats.featuretoggle.exception.FeatureNotAvailableException;
 import com.tpastushok.cosmocats.service.exception.NoSuchProductException;
 import com.tpastushok.cosmocats.service.exception.ThirdPartyServiceException;
 import com.tpastushok.cosmocats.util.ParamsViolationDetails;
@@ -53,6 +54,15 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
         ProblemDetail problemDetail = forStatusAndDetail(INTERNAL_SERVER_ERROR, ex.getMessage());
         problemDetail.setType(create("third-party-service-error"));
         problemDetail.setTitle("Error communicating with third-party service");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(FeatureNotAvailableException.class)
+    ProblemDetail handleFeatureToggleNotEnabledException(FeatureNotAvailableException ex) {
+        log.error("Feature is not enabled");
+        ProblemDetail problemDetail = forStatusAndDetail(NOT_FOUND, ex.getMessage());
+        problemDetail.setType(create("feature-disabled"));
+        problemDetail.setTitle("Feature is disabled");
         return problemDetail;
     }
 
