@@ -1,5 +1,6 @@
 package com.tpastushok.cosmocats.domain.product;
 
+import com.tpastushok.cosmocats.domain.CustomerType;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -22,4 +23,5 @@ public class Product {
     String name;
     String description;
     Double price;
+    CustomerType targetAudience;
 }

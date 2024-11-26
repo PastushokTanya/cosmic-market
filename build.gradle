@@ -78,10 +78,14 @@ dependencies {
 	testAnnotationProcessor 'org.projectlombok:lombok:1.18.34'
 	testAnnotationProcessor 'org.mapstruct:mapstruct-processor:1.6.2'
 	testImplementation 'org.projectlombok:lombok:1.18.34'
+	testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.3'
 
 	// Development tools
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
 	// OpenAPI Documentation
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
+
+	// Spring AOP for aspect-oriented programming (used for feature toggles and cross-cutting concerns)
+	implementation 'org.springframework.boot:spring-boot-starter-aop'
 }
