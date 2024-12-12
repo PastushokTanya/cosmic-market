@@ -1,5 +1,6 @@
 package com.tpastushok.cosmocats.domain.product;
 
+import com.tpastushok.cosmocats.domain.Category;
 import com.tpastushok.cosmocats.domain.CustomerType;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -19,7 +20,7 @@ public class Product {
     // Only the 'id' field will be used for equals() and hashCode()
     @EqualsAndHashCode.Include
     UUID id;
-    UUID categoryId;
+    Category category;
     String name;
     String description;
     Double price;

@@ -18,8 +18,8 @@ public class ProductDto {
     @NotNull(message = "Product ID name cannot be null")
     UUID id;
 
-    @NotNull(message = "Product categoryId cannot be null")
-    UUID categoryId;
+    @NotNull(message = "Product category cannot be null")
+    String category;
 
     @NotNull(message = "Product name cannot be null")
     @NotBlank(message = "Product name cannot be empty")

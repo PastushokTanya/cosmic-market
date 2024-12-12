@@ -1,10 +1,14 @@
 package com.tpastushok.cosmocats.service;
 
-import com.tpastushok.cosmocats.data.ProductRepository;
+import com.tpastushok.cosmocats.domain.Category;
 import com.tpastushok.cosmocats.domain.product.Product;
+import com.tpastushok.cosmocats.repository.ProductRepository;
+import com.tpastushok.cosmocats.repository.persistence.entity.ProductEntity;
 import com.tpastushok.cosmocats.service.exception.NoSuchProductException;
+import com.tpastushok.cosmocats.service.exception.PersistenceException;
 import com.tpastushok.cosmocats.service.implementation.ProductServiceImpl;
 import com.tpastushok.cosmocats.service.inerfaces.ProductService;
+import com.tpastushok.cosmocats.web.mapper.ProductEntityMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -26,6 +30,9 @@ public class ProductServiceTest {
     @MockBean
     private ProductRepository productRepository;
 
+    @MockBean
+    private ProductEntityMapper productEntityMapper;
+
     @Autowired
     private ProductService productService;
 
@@ -35,13 +42,25 @@ public class ProductServiceTest {
     @Captor
     private ArgumentCaptor<Product> productArgumentCaptor;
 
+    @Captor
+    private ArgumentCaptor<ProductEntity> productEntityCaptor;
+
     private Product testProduct;
+    private ProductEntity testProductEntity;
 
     @BeforeEach
     void setUp() {
         testProduct = Product.builder()
                 .id(UUID.fromString("77777777-0000-0000-0000-000000000001"))
-                .categoryId(UUID.randomUUID())
+                .category(Category.TOYS)
+                .name("Anti-Gravity Yarn Ball")
+                .description("A yarn ball that floats in zero gravity, perfect for cosmic playtime.")
+                .price(49.99)
+                .build();
+
+        testProductEntity = ProductEntity.builder()
+                .id(UUID.fromString("77777777-0000-0000-0000-000000000001"))
+                .category(Category.TOYS)
                 .name("Anti-Gravity Yarn Ball")
                 .description("A yarn ball that floats in zero gravity, perfect for cosmic playtime.")
                 .price(49.99)
@@ -50,18 +69,20 @@ public class ProductServiceTest {
 
     @Test
     void getAllProductsTest() {
-        when(productRepository.getAll()).thenReturn(List.of(testProduct));
+        when(productRepository.findAll()).thenReturn(List.of(testProductEntity));
+        when(productEntityMapper.toProducts(anyList())).thenReturn(List.of(testProduct));
 
         var result = productService.getProducts();
 
         assertEquals(1, result.size());
         assertEquals("Anti-Gravity Yarn Ball", result.get(0).getName());
-        verify(productRepository, times(1)).getAll();
+        verify(productRepository, times(1)).findAll();
     }
 
     @Test
     void getProductByIdTest() {
-        when(productRepository.getById(idCaptor.capture())).thenReturn(Optional.of(testProduct));
+        when(productRepository.findById(idCaptor.capture())).thenReturn(Optional.of(testProductEntity));
+        when(productEntityMapper.toProduct(any())).thenReturn(testProduct);
 
         var result = productService.getProduct(testProduct.getId());
 
@@ -72,38 +93,61 @@ public class ProductServiceTest {
 
     @Test
     void getNonExistentProductByIdTest() {
-        when(productRepository.getById(any(UUID.class))).thenReturn(Optional.empty());
+        // Arrange
+        when(productRepository.findById(idCaptor.capture())).thenReturn(Optional.empty());
 
         UUID nonExistentId = UUID.fromString("77777777-0000-0000-0000-000000000006");
+
+        // Act & Assert
         assertThrows(NoSuchProductException.class, () -> productService.getProduct(nonExistentId));
+
+        // Verify
+        assertEquals(nonExistentId, idCaptor.getValue());
+        verify(productRepository, times(1)).findById(nonExistentId);
     }
 
     @Test
     void createProductTest() {
-        when(productRepository.addProduct(productArgumentCaptor.capture())).thenReturn(testProduct);
+        // Mocking mapper behavior
+        when(productEntityMapper.toProductEntity(testProduct)).thenReturn(testProductEntity);
+        when(productEntityMapper.toProduct(testProductEntity)).thenReturn(testProduct);
 
+        // Mocking repository behavior
+        when(productRepository.save(productEntityCaptor.capture())).thenReturn(testProductEntity);
+
+        // Call the service method
         var result = productService.createProduct(testProduct);
 
+        // Assertions
         assertNotNull(result);
         assertEquals(testProduct.getName(), result.getName());
-        assertEquals(testProduct.getId(), productArgumentCaptor.getValue().getId());
-        verify(productRepository, times(1)).addProduct(testProduct);
+        assertEquals(testProduct.getId(), productEntityCaptor.getValue().getId());
+
+        // Verify interactions
+        verify(productRepository, times(1)).save(productEntityCaptor.getValue());
+        verify(productEntityMapper, times(1)).toProductEntity(testProduct);
+        verify(productEntityMapper, times(1)).toProduct(testProductEntity);
     }
 
     @Test
     void updateProductTest() {
+        // Arrange
         Product updatedProduct = testProduct.toBuilder().name("Updated Yarn Ball").build();
 
-        when(productRepository.update(idCaptor.capture(), productArgumentCaptor.capture()))
-                .thenReturn(updatedProduct);
-        when(productRepository.getById(testProduct.getId())).thenReturn(Optional.of(testProduct));
+        when(productRepository.findById(idCaptor.capture())).thenReturn(Optional.of(testProductEntity));
+        when(productRepository.save(productEntityCaptor.capture()))
+                .thenReturn(testProductEntity.toBuilder().name("Updated Yarn Ball").build());
+        when(productEntityMapper.toProduct(any())).thenReturn(updatedProduct);
 
+        // Act
         var result = productService.updateProduct(testProduct.getId(), updatedProduct);
 
+        // Assert
         assertEquals("Updated Yarn Ball", result.getName());
         assertEquals(testProduct.getId(), idCaptor.getValue());
-        assertEquals("Updated Yarn Ball", productArgumentCaptor.getValue().getName());
-        verify(productRepository, times(1)).update(testProduct.getId(), updatedProduct);
+        assertEquals("Updated Yarn Ball", productEntityCaptor.getValue().getName());
+        verify(productRepository, times(1)).findById(testProduct.getId());
+        verify(productRepository, times(1)).save(productEntityCaptor.getValue());
     }
 
     @Test
@@ -114,18 +158,14 @@ public class ProductServiceTest {
         // Create mock product data for the update
         Product updatedProductData = Product.builder()
                 .id(nonExistentProductId)
-                .categoryId(UUID.randomUUID())
+                .category(Category.FOOD)
                 .name("Updated Cosmic Milk")
                 .description("Updated description")
                 .price(19.99)
                 .build();
 
         // Mock the repository to return Optional.empty() when attempting to get by the non-existent ID
-        when(productRepository.getById(nonExistentProductId)).thenReturn(Optional.empty());
-
-        // Simulate NoSuchProductException when attempting to update a non-existent product
-        doThrow(new NoSuchProductException("Product with id: " + nonExistentProductId + " does not exist."))
-                .when(productRepository).update(nonExistentProductId, updatedProductData);
+        when(productRepository.findById(nonExistentProductId)).thenReturn(Optional.empty());
 
         // Verify that updateProduct throws NoSuchProductException for the non-existent ID
         assertThrows(NoSuchProductException.class, () -> productService.updateProduct(nonExistentProductId, updatedProductData));
@@ -133,13 +173,13 @@ public class ProductServiceTest {
 
     @Test
     void deleteProductTest() {
-        when(productRepository.getById(testProduct.getId())).thenReturn(Optional.of(testProduct));
-        doNothing().when(productRepository).delete(idCaptor.capture());
+        doNothing().when(productRepository).deleteById(idCaptor.capture());
+        when(productRepository.findById(testProduct.getId())).thenReturn(Optional.of(testProductEntity));
 
         productService.deleteProduct(testProduct.getId());
 
         assertEquals(testProduct.getId(), idCaptor.getValue());
-        verify(productRepository, times(1)).delete(testProduct.getId());
+        verify(productRepository, times(1)).deleteById(testProduct.getId());
     }
 
     @Test
@@ -147,32 +187,20 @@ public class ProductServiceTest {
         // Given a non-existent product UUID
         UUID nonExistentProductId = UUID.fromString("77777777-0000-0000-0000-000000000006");
 
-        // Simulate NoSuchProductException when attempting to delete a product with the non-existent ID
-        doThrow(new NoSuchProductException("Product with id: " + nonExistentProductId + " does not exist."))
-                .when(productRepository).delete(nonExistentProductId);
+        // Simulate a PersistenceException with a NoSuchProductException as the cause
+        NoSuchProductException causeException = new NoSuchProductException("Product with id: " + nonExistentProductId + " does not exist.");
+        doThrow(new PersistenceException(causeException)).when(productRepository).deleteById(nonExistentProductId);
 
-        // Verify that deleteProduct of the service rethrows NoSuchProductException for the non-existent ID
-        assertThrows(NoSuchProductException.class, () -> productService.deleteProduct(nonExistentProductId));
-    }
 
-    // Utility to create a mock list of products for repeated tests
-    private List<Product> mockProductsList() {
-        return List.of(
-                testProduct,
-                Product.builder()
-                        .id(UUID.fromString("77777777-0000-0000-0000-000000000002"))
-                        .categoryId(UUID.randomUUID())
-                        .name("Cosmic Milk")
-                        .description("A refreshing drink made from milk harvested from cosmic cows.")
-                        .price(15.99)
-                        .build(),
-                Product.builder()
-                        .id(UUID.fromString("77777777-0000-0000-0000-000000000003"))
-                        .categoryId(UUID.randomUUID())
-                        .name("Stardust Blanket")
-                        .description("A warm blanket infused with stardust for cozy nights in space.")
-                        .price(99.99)
-                        .build()
+        // Verify that deleteProduct of the service throws a PersistenceException
+        PersistenceException exception = assertThrows(PersistenceException.class, () -> productService.deleteProduct(nonExistentProductId));
+
+        // Verify that the cause of the PersistenceException is a NoSuchProductException
+        assertTrue(exception.getCause() instanceof NoSuchProductException);
+
+        assertEquals(
+                "Product with id: " + nonExistentProductId + " does not exist. There is nothing to delete!",
+                exception.getCause().getMessage()
         );
     }
 }

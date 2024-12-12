@@ -1,22 +1,31 @@
 package com.tpastushok.cosmocats.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tpastushok.cosmocats.data.ProductRepository;
+import com.tpastushok.cosmocats.AbstractIt;
+import com.tpastushok.cosmocats.repository.ProductRepository;
+import com.tpastushok.cosmocats.domain.Category;
 import com.tpastushok.cosmocats.domain.product.Product;
 import com.tpastushok.cosmocats.dto.product.ProductCreationDto;
 import com.tpastushok.cosmocats.dto.product.ProductDto;
+import com.tpastushok.cosmocats.service.inerfaces.ProductService;
+import com.tpastushok.cosmocats.web.mapper.ProductDtoMapper;
+import com.tpastushok.cosmocats.web.mapper.ProductEntityMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.UUID;
+import java.util.stream.StreamSupport;
 
+import static com.tpastushok.cosmocats.domain.CustomerType.SENIOR_CAT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -52,14 +61,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * products, getting product data).
  */
 @AutoConfigureMockMvc
-public class ProductControllerIT {
+public class ProductControllerIT extends AbstractIt {
 
     private static final String BASE_URL = "/api/v1/products";
     private final ProductCreationDto newProductData = ProductCreationDto.builder()
-            .categoryId(UUID.randomUUID())
+            .category("GADGETS")
             .name("Intergalactic Soap")
             .description("A soap that works in zero gravity.")
             .price(299.99)
+            .targetAudience(SENIOR_CAT)
             .build();
 
     @Autowired
@@ -71,25 +81,30 @@ public class ProductControllerIT {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private ProductEntityMapper entityMapper;
+
+    @Autowired
+    private ProductDtoMapper dtoMapper;
+
+    @SpyBean
+    private ProductService productService;
+
     @BeforeEach
     void setup() {
-        // Collect all product IDs into a separate list to avoid concurrent modification
-        List<UUID> productIds = productRepository.getAll().stream()
-                .map(Product::getId)
-                .toList();
-
-        // Delete each product one by one using the collected IDs
-        productIds.forEach(id -> productRepository.delete(id));
+        Mockito.reset(productService);
+        productRepository.deleteAll();
 
         // Add sample data to the repository
         Product sampleProduct = Product.builder()
                 .id(UUID.randomUUID())
-                .categoryId(UUID.randomUUID())
+                .category(Category.GADGETS)
                 .name("Sample Cosmic Product")
                 .description("Sample Celestial Description")
                 .price(199.99)
+                .targetAudience(SENIOR_CAT)
                 .build();
-        productRepository.addProduct(sampleProduct);
+        productRepository.save(entityMapper.toProductEntity(sampleProduct));
     }
 
     /**
@@ -99,11 +114,12 @@ public class ProductControllerIT {
      */
     @Test
     void getAllProducts_shouldReturnAllProducts() throws Exception {
-        var products = productRepository.getAll();
+        var products = entityMapper.toProducts(productRepository.findAll());
+
         mockMvc.perform(get(BASE_URL))
                 .andExpectAll(
                         status().isOk(),
-                        content().json(objectMapper.writeValueAsString(products))
+                        content().json(objectMapper.writeValueAsString(dtoMapper.toProductDto(products)))
                 );
     }
 
@@ -114,7 +130,11 @@ public class ProductControllerIT {
      */
     @Test
     void getProductById_shouldReturnProductDetails() throws Exception {
-        var existingProduct = productRepository.getAll().get(0);
+        // Retrieve the first product from the repository
+        var existingProduct = StreamSupport.stream(productRepository.findAll().spliterator(), false)
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("No Product found! Impossible to complete the test."));
+
         mockMvc.perform(get(BASE_URL + "/{id}", existingProduct.getId()))
                 .andExpectAll(
                         status().isOk(),
@@ -146,12 +166,20 @@ public class ProductControllerIT {
      */
     @Test
     void deleteProductById_shouldRemoveProductFromRepository() throws Exception {
-        var productToDelete = productRepository.getAll().get(0);
+        // Retrieve the first product from the repository
+        var productToDelete = StreamSupport.stream(productRepository.findAll().spliterator(), false)
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("No Product found! Impossible to complete the test."));
+
+        // Perform the DELETE request
         mockMvc.perform(delete(BASE_URL + "/{id}", productToDelete.getId()))
                 .andExpect(status().isNoContent());
 
-        assertThat(productRepository.getAll().stream()
-                .noneMatch(product -> product.getId().equals(productToDelete.getId()))).isTrue();
+        // Assert that the product is no longer in the repository
+        boolean isProductDeleted = StreamSupport.stream(productRepository.findAll().spliterator(), false)
+                .noneMatch(product -> product.getId().equals(productToDelete.getId()));
+
+        assertThat(isProductDeleted).isTrue();
     }
 
     /**
@@ -193,8 +221,11 @@ public class ProductControllerIT {
         // Assert that the created product has a non-null ID
         assertThat(createdProduct.getId()).isNotNull();
 
-        // Step 3: Retrieve the product directly from the repository by ID and verify its properties
-        var productFromRepo = productRepository.getById(createdProduct.getId()).orElse(null);
+    // Step 3: Retrieve the product directly from the repository by filtering the Iterable and verify its properties
+    var productFromRepo = StreamSupport.stream(productRepository.findAll().spliterator(), false)
+            .filter(product -> product.getId().equals(createdProduct.getId()))
+            .findFirst()
+            .orElse(null);
 
         // Assert that the product exists in the repository and matches the createdProduct details
         assertThat(productFromRepo).isNotNull();
@@ -209,12 +240,17 @@ public class ProductControllerIT {
      */
     @Test
     void updateExistingProduct_shouldReturnUpdatedProductDetails() throws Exception {
-        var productToUpdate = productRepository.getAll().get(0);
+        // Retrieve a product to update
+        var productToUpdate = StreamSupport.stream(productRepository.findAll().spliterator(), false)
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("No Product found! Impossible to complete the test."));
 
+        // Create updated data for the product
         ProductCreationDto updatedData = newProductData.toBuilder()
                 .name("Updated Comet Dust Cream")
                 .build();
 
+        // Perform the PUT request to update the product
         mockMvc.perform(put(BASE_URL + "/{id}", productToUpdate.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updatedData)))
@@ -223,8 +259,12 @@ public class ProductControllerIT {
                         jsonPath("$.name").value(updatedData.getName())
                 );
 
-        assertThat(productRepository.getById(productToUpdate.getId()).get().getName())
-                .isEqualTo("Updated Comet Dust Cream");
+        // Retrieve the updated product from the repository to verify the update
+        var updatedProduct = productRepository.findById(productToUpdate.getId())
+                .orElseThrow(() -> new NoSuchElementException("Updated Product not found in the repository."));
+
+        // Assert that the product name has been updated
+        assertThat(updatedProduct.getName()).isEqualTo("Updated Comet Dust Cream");
     }
 
     /**
@@ -254,7 +294,7 @@ public class ProductControllerIT {
         String productId = "24599e78-fb15-440f-af81-15822a42eb0f";
         String requestBody = """
         {
-            "categoryId": "05739f8d-1d6e-4070-97f9-3b9b782c34c4",
+            "category": "HYGIENE",
             "name": "Intergalactic Soap",
             "description": "A soap that works in zero gravity.",
             "price": -99.99
@@ -296,8 +336,8 @@ public class ProductControllerIT {
                 .andExpect(jsonPath("$.title").value("Field Validation Exception"))
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.detail").value("Request validation failed"))
-                .andExpect(jsonPath("$.invalidParams[0].fieldName").value("categoryId"))
-                .andExpect(jsonPath("$.invalidParams[0].reason").value("Product categoryId cannot be null"));
+                .andExpect(jsonPath("$.invalidParams[0].fieldName").value("category"))
+                .andExpect(jsonPath("$.invalidParams[0].reason").value("Product category cannot be null"));
     }
 
     /**
@@ -310,7 +350,7 @@ public class ProductControllerIT {
         String productId = "24599e78-fb15-440f-af81-15822a42eb0f";
         String requestBody = """
             {
-                "categoryId": "05739f8d-1d6e-4070-97f9-3b9b782c34c4",
+                "category": "FOOD",
                 "name": "Just A Regular Juice",
                 "description": "A regular product description without cosmic terms.",
                 "price": 39.99

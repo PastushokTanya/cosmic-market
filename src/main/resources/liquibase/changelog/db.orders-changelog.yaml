@@ -1,0 +1,55 @@
+databaseChangeLog:
+  - changeSet:
+      id: lab-3-2
+      author: "tpastushok"
+      changes:
+        - createTable:
+            tableName: "orders"
+            columns:
+              - column:
+                  name: "id"
+                  type: "BIGINT"
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: "order_reference"
+                  type: "UUID"
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: "customer_name"
+                  type: "VARCHAR(128)"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: "address"
+                  type: VARCHAR(512)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: "email"
+                  type: VARCHAR(256)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: "total_price"
+                  type: "DECIMAL(10,2)"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: "order_status"
+                  type: "VARCHAR(50)"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: "creation_date"
+                  type: "TIMESTAMP"
+                  defaultValueComputed: "CURRENT_TIMESTAMP"
+                  constraints:
+                    nullable: false
+
+        - createSequence:
+            sequenceName: order_id_seq
+            incrementBy: 50
