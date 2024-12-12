@@ -1,0 +1,37 @@
+databaseChangeLog:
+  - changeSet:
+      id: lab-3-1
+      author: "tpastushok"
+      changes:
+        - createTable:
+            tableName: "products"
+            columns:
+              - column:
+                  name: "id"
+                  type: "UUID"
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: "name"
+                  type: "VARCHAR(255)"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: "description"
+                  type: "TEXT"
+              - column:
+                  name: "price"
+                  type: "DECIMAL(10,2)"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: "category"
+                  type: "VARCHAR(255)"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: "target_audience"
+                  type: "VARCHAR(50)"
+                  constraints:
+                    nullable: false

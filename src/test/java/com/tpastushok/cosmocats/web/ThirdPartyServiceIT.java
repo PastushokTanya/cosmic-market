@@ -1,6 +1,7 @@
 package com.tpastushok.cosmocats.web;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import com.tpastushok.cosmocats.AbstractIt;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * These tests verify communication with a simulated third-party service
  * using WireMock to stub responses for various scenarios.
  */
-class ThirdPartyServiceIT {
+class ThirdPartyServiceIT extends AbstractIt {
 
     @Value("${application.competitors-price-observer.url-wildcard}")
     private String competitorsObserverUrlWildcard;

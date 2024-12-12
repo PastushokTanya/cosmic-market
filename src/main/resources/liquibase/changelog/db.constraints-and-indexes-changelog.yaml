@@ -1,0 +1,45 @@
+databaseChangeLog:
+  - changeSet:
+      id: lab-3-4
+      author: "tpastushok"
+      changes:
+        - addUniqueConstraint:
+            columnNames: "name,category"
+            tableName: "products"
+            constraintName: "unique_product_name_per_category"
+
+        - addForeignKeyConstraint:
+            baseTableName: "order_entries"
+            baseColumnNames: "order_id"
+            referencedTableName: "orders"
+            referencedColumnNames: "id"
+            constraintName: "fk_order_entry_orders"
+            onDelete: "CASCADE"
+
+        - addForeignKeyConstraint:
+            baseTableName: "order_entries"
+            baseColumnNames: "product_id"
+            referencedTableName: "products"
+            referencedColumnNames: "id"
+            constraintName: "fk_order_entry_products"
+            onDelete: CASCADE
+
+        - createIndex:
+            tableName: "products"
+            indexName: "idx_product_category"
+            columns:
+              - column:
+                  name: "category"
+
+        - createIndex:
+            tableName: "orders"
+            indexName: "idx_order_customer_email"
+            columns:
+              - column:
+                  name: "email"
+
+        - sql:
+            sql: >
+              ALTER TABLE order_entries
+              ADD CONSTRAINT chk_order_entries_quantity_gt_zero
+              CHECK (quantity > 0);

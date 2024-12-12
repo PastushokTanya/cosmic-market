@@ -1,7 +1,9 @@
 package com.tpastushok.cosmocats.web;
 
 import com.tpastushok.cosmocats.featuretoggle.exception.FeatureNotAvailableException;
+import com.tpastushok.cosmocats.service.exception.NoSuchOrderException;
 import com.tpastushok.cosmocats.service.exception.NoSuchProductException;
+import com.tpastushok.cosmocats.service.exception.PersistenceException;
 import com.tpastushok.cosmocats.service.exception.ThirdPartyServiceException;
 import com.tpastushok.cosmocats.util.ParamsViolationDetails;
 import lombok.extern.slf4j.Slf4j;
@@ -39,12 +41,30 @@ import static org.springframework.http.ProblemDetail.forStatusAndDetail;
 @ControllerAdvice
 @Slf4j
 public class ExceptionTranslator extends ResponseEntityExceptionHandler {
+
+    @ExceptionHandler(PersistenceException.class)
+    ProblemDetail handlePersistenceException(PersistenceException ex) {
+        log.error("Persistence exception raised");
+        ProblemDetail problemDetail = forStatusAndDetail(INTERNAL_SERVER_ERROR, ex.getMessage());
+        problemDetail.setType(create("persistence-exception"));
+        problemDetail.setTitle("Persistence exception");
+        return problemDetail;
+    }
+
     @ExceptionHandler(NoSuchProductException.class)
     ProblemDetail handleStoreConfigurationNotFoundException(NoSuchProductException ex) {
         log.info("Product Not Found exception raised");
         ProblemDetail problemDetail = forStatusAndDetail(NOT_FOUND, ex.getMessage());
         problemDetail.setType(create("product-not-found"));
         problemDetail.setTitle("Product Not Found");
+        return problemDetail;
+    }
+    @ExceptionHandler(NoSuchOrderException.class)
+    ProblemDetail handleStoreConfigurationNotFoundException(NoSuchOrderException ex) {
+        log.info("Order Not Found exception raised");
+        ProblemDetail problemDetail = forStatusAndDetail(NOT_FOUND, ex.getMessage());
+        problemDetail.setType(create("order-not-found"));
+        problemDetail.setTitle("Order Not Found");
         return problemDetail;
     }
 

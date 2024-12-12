@@ -16,8 +16,8 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 @GroupSequence({ ProductCreationDto.class, ExtendedValidation.class})
 public class ProductCreationDto {
-    @NotNull(message = "Product categoryId cannot be null")
-    UUID categoryId;
+    @NotNull(message = "Product category cannot be null")
+    String category;
 
     @NotNull(message = "Product name cannot be null")
     @NotBlank(message = "Product name cannot be empty")

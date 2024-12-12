@@ -1,0 +1,37 @@
+databaseChangeLog:
+  - changeSet:
+      id: lab-3-3
+      author: "tpastushok"
+      changes:
+        - createSequence:
+            sequenceName: order_entry_id_seq
+            incrementBy: 50
+        - createTable:
+            tableName: "order_entries"
+            columns:
+              - column:
+                  name: "id"
+                  type: "BIGINT"
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: "order_id"
+                  type: "BIGINT"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: "product_id"
+                  type: "UUID"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: "quantity"
+                  type: "BIGINT"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: "price"
+                  type: "DECIMAL(10,2)"
+                  constraints:
+                    nullable: false

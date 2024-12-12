@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - include:
+      file: "liquibase/changelog/db.products-changelog.yaml"
+  - include:
+      file: "liquibase/changelog/db.orders-changelog.yaml"
+  - include:
+      file: "liquibase/changelog/db.order-entries-changelog.yaml"
+  - include:
+      file: "liquibase/changelog/db.constraints-and-indexes-changelog.yaml"

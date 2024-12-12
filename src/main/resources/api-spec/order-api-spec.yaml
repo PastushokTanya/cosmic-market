@@ -1,0 +1,286 @@
+openapi: 3.0.1
+info:
+  title: Order API
+  version: 1.0.0
+paths:
+  /api/v1/orders:
+    get:
+      summary: List of all Orders
+      tags:
+        - Orders
+      operationId: getAllOrders
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrderResponseDto"
+    post:
+      summary: Create a new Order
+      tags:
+        - Orders
+      operationId: createOrder
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderRequestDto"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/OrderResponseDto"
+        "400":
+          description: Invalid input, some of the fields failed validation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/orders/{id}:
+    get:
+      summary: Get a Order by its UUID
+      tags:
+        - Orders
+      operationId: getOrderById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/OrderResponseDto"
+    put:
+      summary: Update order status by its natural ID
+      tags:
+        - Orders
+      operationId: updateOrderStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - OrderStatus.PENDING(description=Pending approval or payment)
+              - OrderStatus.PROCESSING(description=Currently being processed)
+              - OrderStatus.SHIPPED(description=Shipped to the customer)
+              - OrderStatus.DELIVERED(description=Delivered successfully)
+              - OrderStatus.CANCELLED(description=Cancelled by the customer or system)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/OrderResponseDto"
+    delete:
+      summary: Delete Order by its Natural ID
+      tags:
+        - Orders
+      operationId: deleteOrder
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+  /api/v1/orders/search:
+    get:
+      summary: Search among all the Orders
+      tags:
+        - Orders
+      operationId: getOrderByCustomerEmail
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrderProjection"
+  /api/v1/orders/popular-ordered-products:
+    get:
+      summary: Get top 10 Products that are in Orders registered
+      tags:
+        - Orders
+      operationId: getPopularProducts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PopularSoldProductsProjection"
+components:
+  schemas:
+    OrderEntityRequestBody:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        orderReference:
+          type: string
+          format: uuid
+        customerName:
+          type: string
+        address:
+          type: string
+        email:
+          type: string
+        entries:
+          type: array
+          items:
+            type: string
+        totalPrice:
+          type: number
+          format: double
+        status:
+          type: string
+          enum:
+            - OrderStatus.PENDING(description=Pending approval or payment)
+            - OrderStatus.PROCESSING(description=Currently being processed)
+            - OrderStatus.SHIPPED(description=Shipped to the customer)
+            - OrderStatus.DELIVERED(description=Delivered successfully)
+            - OrderStatus.CANCELLED(description=Cancelled by the customer or system)
+        creationDate:
+          type: string
+          format: date-time
+    OrderEntryDto:
+      required:
+        - productId
+      type: object
+      properties:
+        productId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          format: int64
+        price:
+          type: number
+          format: double
+    OrderResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        customerName:
+          type: string
+        address:
+          type: string
+        email:
+          type: string
+        totalPrice:
+          type: number
+          format: double
+        status:
+          type: string
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderEntryDto"
+        creationDate:
+          type: string
+          format: date-time
+    OrderRequestDto:
+      required:
+        - address
+        - customerName
+        - orderEntries
+      type: object
+      properties:
+        orderEntries:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderEntryDto"
+        address:
+          maxLength: 512
+          minLength: 0
+          type: string
+        email:
+          type: string
+        customerName:
+          maxLength: 128
+          minLength: 0
+          type: string
+    OrderProjection:
+      type: object
+      properties:
+        status:
+          type: string
+        totalPrice:
+          type: number
+          format: double
+        orderReference:
+          type: string
+    PopularSoldProductsProjection:
+      type: object
+      properties:
+        productName:
+          type: string
+        numberOfProducts:
+          type: integer
+          format: int64
+        totalPrice:
+          type: number
+          format: double
+    ProblemDetail:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+          example: "urn:problem-type:validation-error"
+        title:
+          type: string
+          example: "Field Validation Exception"
+        status:
+          type: integer
+          example: 400
+        detail:
+          type: string
+          example: "Request validation failed"
+        "instance":
+          type: string
+          example: "/api/v1/orders"
+        "invalidParams":
+          type: array
+          example: [
+            {
+              "fieldName": "orderEntries[0].quantity",
+              "reason": "Quantity must be greater than 0"
+            }
+          ]

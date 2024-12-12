@@ -1,16 +1,18 @@
 package com.tpastushok.cosmocats.domain.order;
 
-import com.tpastushok.cosmocats.domain.product.Product;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.Value;
+
+import java.util.UUID;
 
 @Value
 @Builder
 @ToString
 @EqualsAndHashCode
 public class OrderEntry {
-    Product product;
+    UUID productId;
     Long quantity;
+    Double price;
 }

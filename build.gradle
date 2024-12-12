@@ -23,10 +23,11 @@ ext {
 			"**/cosmocats/dto/*",
 			"**/cosmocats/service/exception/*",
 			"**/cosmocats/web/exception/*",
-			"**/cosmocats/*Mapper.*",
+			"**/cosmocats/*Mapper*",
 			"**/cosmocats/*Utils.*",
 			"**/cosmocats/*Translator.*",
-			"**/cosmocats/*CompetitorObserverService*"
+			"**/cosmocats/*CompetitorObserverService*",
+			"**/cosmocats/*InMemoryProductRepository*"
 	]
 }
 
@@ -88,4 +89,16 @@ dependencies {
 
 	// Spring AOP for aspect-oriented programming (used for feature toggles and cross-cutting concerns)
 	implementation 'org.springframework.boot:spring-boot-starter-aop'
+
+	// Spring Boot Starter JPA for ORM and database interaction
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+	// Liquibase for database versioning and migration management
+	implementation 'org.liquibase:liquibase-core:4.30.0'
+
+	// PostgreSQL JDBC Driver for connecting to PostgreSQL databases
+	implementation 'org.postgresql:postgresql:42.7.4'
+
+	// Spring Boot TestContainers for testing with isolated containers (e.g., for databases or services)
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
 }

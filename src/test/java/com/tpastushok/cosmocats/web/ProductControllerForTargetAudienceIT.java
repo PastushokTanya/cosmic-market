@@ -1,5 +1,6 @@
 package com.tpastushok.cosmocats.web;
 
+import com.tpastushok.cosmocats.AbstractIt;
 import com.tpastushok.cosmocats.annotation.TurnFeatureToggleOff;
 import com.tpastushok.cosmocats.annotation.TurnFeatureToggleOn;
 import com.tpastushok.cosmocats.featuretoggle.FeatureToggleExtension;
@@ -30,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("Product Controller For Target Audience IT")
 @AutoConfigureMockMvc
 @ExtendWith(FeatureToggleExtension.class)
-public class ProductControllerForTargetAudienceIT {
+public class ProductControllerForTargetAudienceIT extends AbstractIt {
 
     @Autowired
     private MockMvc mockMvc;

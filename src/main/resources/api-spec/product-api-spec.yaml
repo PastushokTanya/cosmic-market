@@ -198,13 +198,12 @@ components:
   schemas:
     ProductCreationDto:
       required:
-      - categoryId
+      - category
       - name
       type: object
       properties:
-        categoryId:
+        category:
           type: string
-          format: uuid
         name:
           type: string
         description:
@@ -220,7 +219,7 @@ components:
           - CustomerType.SENIOR_CAT(customerTypeName=senior-cat)
     ProductDto:
       required:
-      - categoryId
+      - category
       - id
       - name
       type: object
@@ -228,9 +227,8 @@ components:
         id:
           type: string
           format: uuid
-        categoryId:
+        category:
           type: string
-          format: uuid
         name:
           type: string
         description:
