@@ -31,7 +31,6 @@ spring:
 
 # application props
 application:
-  base-url: /api/v1/products
   competitors-price-observer:
     url-wildcard: http://localhost:8081/competitors-price-observer/v1/product/{productId}/prices
   feature:

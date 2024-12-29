@@ -11,6 +11,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -98,5 +100,23 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
                 errors.stream().map(err -> ParamsViolationDetails.builder().reason(err.getDefaultMessage()).fieldName(err.getField()).build()).toList();
         log.info("Input params validation failed");
         return ResponseEntity.status(BAD_REQUEST).body(getValidationErrorsProblemDetail(validationResponse));
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    ProblemDetail handleAuthorizationDeniedException(AuthorizationDeniedException ex, WebRequest request) {
+        log.error("Authorization denied: {}", ex.getMessage());
+        ProblemDetail problemDetail = forStatusAndDetail(FORBIDDEN, "Access Denied");
+        problemDetail.setType(create("authorization-denied"));
+        problemDetail.setTitle("Forbidden");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
+    ProblemDetail handleAuthenticationException(AuthenticationCredentialsNotFoundException ex, WebRequest request) {
+        log.error("Authentication credentials not provided: {}", ex.getMessage());
+        ProblemDetail problemDetail = forStatusAndDetail(UNAUTHORIZED, "No authentication credentials provided");
+        problemDetail.setType(create("authentication-required"));
+        problemDetail.setTitle("Authentication Required");
+        return problemDetail;
     }
 }

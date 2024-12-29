@@ -6,6 +6,7 @@ import com.tpastushok.cosmocats.annotation.TurnFeatureToggleOn;
 import com.tpastushok.cosmocats.featuretoggle.FeatureToggleExtension;
 import com.tpastushok.cosmocats.featuretoggle.FeatureToggleService;
 import com.tpastushok.cosmocats.featuretoggle.FeatureToggles;
+import com.tpastushok.cosmocats.noauth.NoAuthSecurityConfiguration;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,7 +17,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.stream.Stream;
@@ -26,6 +31,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@ActiveProfiles("no-auth")
+@Import({NoAuthSecurityConfiguration.class})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @DirtiesContext
 @DisplayName("Product Controller For Target Audience IT")
@@ -38,6 +45,9 @@ public class ProductControllerForTargetAudienceIT extends AbstractIt {
 
     @Autowired
     private FeatureToggleService featureToggleService;
+
+    @MockBean
+    JwtDecoder jwtDecoder;
 
     /**
      * Test that accessing the Kitty Products endpoint with the feature toggle OFF returns 404.

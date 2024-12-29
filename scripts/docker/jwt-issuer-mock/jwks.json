@@ -1,0 +1,8 @@
+{
+  "alg": "RS256",
+  "kty": "RSA",
+  "kid": "the-magnificent-cosmo-cat-super-secret-key",
+  "use": "sig",
+  "n": "v7x1zfmNtx0onru6_9C4NN2qglK6va2NfwQpOCRERlFKbXlWOkCOgM1g-QWbzZ-hebpHOJQFMYyi2Aeg7WH7xbfqc0XyL72FRCi5IVWA4GlBAW-jGuLMDxiSNhstcPz-GB_gDvZc10vc3l1ITM1Gy7bfgwzwdBOZJX2xmW1WVD_G5KebCJrqtTRFn5TP42rsPMz_EYTyNeyjDVS2Msa1eSOnZZomTl3f7gdWz1iz6gnmJ256LwgJGSNHVzOp6z8qI95Zm85MOzrv_WO1Fvo14s_F-zSi1JwOA3I0XF3jwSePNHaMd2RqssIHIHEFaNtZjqUxQNfKsJ56iFNxtIx3Gw",
+  "e": "AQAB"
+}

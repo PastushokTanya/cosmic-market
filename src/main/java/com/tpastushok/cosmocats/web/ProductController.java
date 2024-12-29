@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,13 +22,14 @@ import static com.tpastushok.cosmocats.domain.CustomerType.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("${application.base-url}")
+@RequestMapping("/api/v1/products")
 public class ProductController {
 
     private final ProductService service;
     private final ProductDtoMapper mapper;
     private final CompetitorObserverService competitorObserverService;
 
+    @PreAuthorize("hasRole('COSMO_ADMIN')")
     @GetMapping
     public ResponseEntity<List<ProductDto>> getProducts() {
         return ResponseEntity.ok(mapper.toProductDto(service.getProducts()));
@@ -68,6 +70,7 @@ public class ProductController {
         return ResponseEntity.ok(mapper.toProductDto(service.getProduct(id)));
     }
 
+    @PreAuthorize("hasRole('COSMO_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable UUID id) {
         service.deleteProduct(id);
@@ -75,6 +78,8 @@ public class ProductController {
     }
 
     // update an existing Product
+
+    @PreAuthorize("hasRole('COSMO_ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<ProductDto> updateProduct(
             @PathVariable UUID id, @RequestBody @Valid ProductCreationDto productDto) {
@@ -87,6 +92,7 @@ public class ProductController {
     }
 
     // create new Product
+    @PreAuthorize("hasRole('COSMO_ADMIN')")
     @PostMapping
     public ResponseEntity<ProductDto> createProduct(@Valid @RequestBody ProductCreationDto productCreationDto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(
@@ -98,6 +104,7 @@ public class ProductController {
         );
     }
 
+    @PreAuthorize("hasRole('COSMO_MARKETOLOGIST')")
     @GetMapping("/{id}/competitor-price-observer")
     public ResponseEntity<CompetitorsObserverResponseDto> getOtherStoresPrices(@PathVariable UUID id) {
         return ResponseEntity.ok(competitorObserverService.observeOtherStorePrices(id));

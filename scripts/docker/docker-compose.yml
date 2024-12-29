@@ -1,0 +1,51 @@
+networks:
+  services:
+    name: services-network
+
+services:
+  competitors-price-observer:
+    container_name: competitors-price-observer
+    build:
+      context: ./competitors-price-observer
+    networks:
+      - services
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8081/__admin/health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "8082:8080"
+
+  cosmic-jwt-issuer-mock:
+    container_name: cosmic-jwt-issuer-mock
+    build:
+      context: ./jwt-issuer-mock
+    networks:
+      - services
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/__admin/requests || exit 1" ]
+      start_period: 10s  # increased to allow the container to initialize properly
+      interval: 5s       # interval between health checks
+      timeout: 2s        # timeout for each health check
+      retries: 3         # number of retries before considering the service unhealthy
+    volumes:
+      - ./jwt-issuer-mock/jwks.json:/var/wiremock/__files/jwks.json
+    ports:
+      - "8083:8080"
+
+  postgres:
+    image: postgres
+    container_name: postgres_intergalactic_storage
+    environment:
+      POSTGRES_DB: "cosmic_cats"
+      POSTGRES_USER: "cosmic-cat"
+      POSTGRES_PASSWORD: "cosmic-password"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+    driver: local

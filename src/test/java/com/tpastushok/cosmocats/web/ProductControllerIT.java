@@ -2,11 +2,11 @@ package com.tpastushok.cosmocats.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tpastushok.cosmocats.AbstractIt;
-import com.tpastushok.cosmocats.repository.ProductRepository;
 import com.tpastushok.cosmocats.domain.Category;
 import com.tpastushok.cosmocats.domain.product.Product;
 import com.tpastushok.cosmocats.dto.product.ProductCreationDto;
 import com.tpastushok.cosmocats.dto.product.ProductDto;
+import com.tpastushok.cosmocats.repository.ProductRepository;
 import com.tpastushok.cosmocats.service.inerfaces.ProductService;
 import com.tpastushok.cosmocats.web.mapper.ProductDtoMapper;
 import com.tpastushok.cosmocats.web.mapper.ProductEntityMapper;
@@ -16,8 +16,11 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -26,7 +29,9 @@ import java.util.UUID;
 import java.util.stream.StreamSupport;
 
 import static com.tpastushok.cosmocats.domain.CustomerType.SENIOR_CAT;
+import static com.tpastushok.cosmocats.util.SecurityUtil.API_KEY_HEADER;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -64,6 +69,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class ProductControllerIT extends AbstractIt {
 
     private static final String BASE_URL = "/api/v1/products";
+
+    public static final String BEARER_TOKEN_STUB = "Bearer token stub";
+
     private final ProductCreationDto newProductData = ProductCreationDto.builder()
             .category("GADGETS")
             .name("Intergalactic Soap")
@@ -90,6 +98,9 @@ public class ProductControllerIT extends AbstractIt {
     @SpyBean
     private ProductService productService;
 
+    @MockBean
+    JwtDecoder jwtDecoder;
+
     @BeforeEach
     void setup() {
         Mockito.reset(productService);
@@ -112,6 +123,7 @@ public class ProductControllerIT extends AbstractIt {
      * Ensures that a GET request to the /products endpoint returns
      * a list of all products in the repository with an OK status.
      */
+    @WithMockUser(roles = "COSMO_ADMIN")
     @Test
     void getAllProducts_shouldReturnAllProducts() throws Exception {
         var products = entityMapper.toProducts(productRepository.findAll());
@@ -128,6 +140,7 @@ public class ProductControllerIT extends AbstractIt {
      * Verifies that a product can be fetched by its ID and checks
      * that the response contains expected fields such as 'name' and 'description'.
      */
+    @WithMockUser
     @Test
     void getProductById_shouldReturnProductDetails() throws Exception {
         // Retrieve the first product from the repository
@@ -148,6 +161,7 @@ public class ProductControllerIT extends AbstractIt {
      * Attempts to fetch a product that does not exist, verifying
      * that the server responds with a 404 Not Found status and an error message.
      */
+    @WithMockUser
     @Test
     void getProductById_whenProductDoesNotExist_shouldReturnNotFound() throws Exception {
         UUID nonExistentId = UUID.randomUUID();
@@ -164,6 +178,7 @@ public class ProductControllerIT extends AbstractIt {
      * Verifies that a product can be successfully deleted using its ID.
      * Confirms that the product is no longer present in the repository.
      */
+    @WithMockUser(roles = "COSMO_ADMIN")
     @Test
     void deleteProductById_shouldRemoveProductFromRepository() throws Exception {
         // Retrieve the first product from the repository
@@ -172,7 +187,9 @@ public class ProductControllerIT extends AbstractIt {
                 .orElseThrow(() -> new NoSuchElementException("No Product found! Impossible to complete the test."));
 
         // Perform the DELETE request
-        mockMvc.perform(delete(BASE_URL + "/{id}", productToDelete.getId()))
+        mockMvc.perform(delete(BASE_URL + "/{id}", productToDelete.getId())
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isNoContent());
 
         // Assert that the product is no longer in the repository
@@ -199,10 +216,13 @@ public class ProductControllerIT extends AbstractIt {
      * - Asserts that the product exists in the repository.
      * - Asserts that the name and description match the values from `newProductData`, ensuring the product was saved correctly.
      */
+    @WithMockUser(roles = "COSMO_ADMIN")
     @Test
     void createProduct_shouldReturnCreatedProductDetails() throws Exception {
         // Step 1: Send a POST request to create a new product and verify the HTTP response and JSON content
         var response = mockMvc.perform(post(BASE_URL)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(newProductData)))
                 .andExpectAll(
@@ -238,6 +258,7 @@ public class ProductControllerIT extends AbstractIt {
      * Verifies that a PUT request can update a product's data and checks that
      * the updated product's name is changed as expected in the response and repository.
      */
+    @WithMockUser(roles = "COSMO_ADMIN")
     @Test
     void updateExistingProduct_shouldReturnUpdatedProductDetails() throws Exception {
         // Retrieve a product to update
@@ -252,6 +273,8 @@ public class ProductControllerIT extends AbstractIt {
 
         // Perform the PUT request to update the product
         mockMvc.perform(put(BASE_URL + "/{id}", productToUpdate.getId())
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updatedData)))
                 .andExpectAll(
@@ -273,10 +296,13 @@ public class ProductControllerIT extends AbstractIt {
      * results in a 404 Not Found status with a relevant error message.
      */
     @Test
+    @WithMockUser(roles = "COSMO_ADMIN")
     void updateProduct_whenProductDoesNotExist_shouldReturnNotFound() throws Exception {
         UUID nonExistentId = UUID.randomUUID();
         mockMvc.perform(put(BASE_URL + "/{id}", nonExistentId)
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf())
                         .content(objectMapper.writeValueAsString(newProductData)))
                 .andExpectAll(
                         status().isNotFound(),
@@ -290,6 +316,7 @@ public class ProductControllerIT extends AbstractIt {
      * Expects a 400 Bad Request status and a relevant validation error message.
      */
     @Test
+    @WithMockUser
     void updateProductWithInvalidPrice_shouldReturnBadRequest() throws Exception {
         String productId = "24599e78-fb15-440f-af81-15822a42eb0f";
         String requestBody = """
@@ -318,15 +345,16 @@ public class ProductControllerIT extends AbstractIt {
      * Expects a 400 Bad Request status with a relevant validation error message.
      */
     @Test
+    @WithMockUser
     void updateProductWithMissingCategoryId_shouldReturnBadRequest() throws Exception {
         String productId = "24599e78-fb15-440f-af81-15822a42eb0f";
         String requestBody = """
-        {
-            "name": "Cosmic Oil",
-            "description": "Oil for cosmic travels",
-            "price": 49.99
-        }
-        """;
+                {
+                    "name": "Cosmic Oil",
+                    "description": "Oil for cosmic travels",
+                    "price": 49.99
+                }
+                """;
 
         mockMvc.perform(put("/api/v1/products/" + productId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -345,6 +373,7 @@ public class ProductControllerIT extends AbstractIt {
      * Verifies that a product name must contain cosmic-related terms to meet validation requirements.
      * Ensures the response has a 400 Bad Request status and includes a validation error for the 'name' field.
      */
+    @WithMockUser
     @Test
     void updateProductWithNoCosmicWordInTheProductName_shouldReturnBadRequest() throws Exception {
         String productId = "24599e78-fb15-440f-af81-15822a42eb0f";
