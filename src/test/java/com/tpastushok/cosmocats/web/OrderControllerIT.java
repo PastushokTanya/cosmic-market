@@ -18,8 +18,12 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -29,15 +33,20 @@ import java.util.UUID;
 
 import static com.tpastushok.cosmocats.domain.Category.*;
 import static com.tpastushok.cosmocats.domain.CustomerType.*;
+import static com.tpastushok.cosmocats.util.SecurityUtil.API_KEY_HEADER;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @DirtiesContext
 @AutoConfigureMockMvc
 public class OrderControllerIT extends AbstractIt {
     private static final String BASE_URL = "/api/v1/orders";
+
+    public static final String BEARER_TOKEN_STUB = "Bearer token stub";
 
     @Autowired
     private ProductRepository productRepository;
@@ -60,6 +69,9 @@ public class OrderControllerIT extends AbstractIt {
     @SpyBean
     private OrderService orderService;
 
+    @MockBean
+    JwtDecoder jwtDecoder;
+
     @BeforeEach
     void setup() {
         Mockito.reset(productService);
@@ -69,6 +81,13 @@ public class OrderControllerIT extends AbstractIt {
         orderRepository.deleteAll();
 
         saveSampleProducts();
+
+        Jwt jwtMock = Jwt.withTokenValue("dummy-token")
+                .header("alg", "none")
+                .claim("access", "ProductApi")
+                .claim("authorities", List.of())
+                .build();
+        when(jwtDecoder.decode(anyString())).thenReturn(jwtMock);
     }
 
     /**
@@ -79,6 +98,7 @@ public class OrderControllerIT extends AbstractIt {
      * - The response contains the correct number of order entries and that each entry matches the order request.
      */
     @Test
+    @WithMockUser(roles = "COSMO_ADMIN")
     void shouldCreateOrderInRepoAndReturnItViaController() throws Exception {
 
         // Verify no orders before the request
@@ -87,7 +107,9 @@ public class OrderControllerIT extends AbstractIt {
         // Place new order and check that we have 2 entries in the response
         mockMvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(getOrderRequestDto())))
+                        .content(objectMapper.writeValueAsString(getOrderRequestDto()))
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.entries").isArray())  // Change "orderEntries" to "entries"
                 .andExpect(jsonPath("$.entries.length()").value(2));  // Ensure 2 entries in the response
@@ -96,7 +118,9 @@ public class OrderControllerIT extends AbstractIt {
         assert orderRepository.findAll().size() == 1;  // Ensure that exactly 1 order was created
 
         // Get all the orders and verify the response contains 1 order with 2 entries
-        mockMvc.perform(get(BASE_URL))
+        mockMvc.perform(get(BASE_URL)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(1))  // Ensure we have 1 order in the response
@@ -109,6 +133,7 @@ public class OrderControllerIT extends AbstractIt {
     }
 
     @Test
+    @WithMockUser(roles = "COSMO_ADMIN")
     void shouldReturnErrorForNonExistentProduct() throws Exception {
         // UUID for a non-existent product
         UUID nonExistentProductId = UUID.fromString("77777777-0000-0000-0000-000000000001");
@@ -128,7 +153,9 @@ public class OrderControllerIT extends AbstractIt {
         // Perform the POST request and verify the 404 error with the appropriate message
         mockMvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(orderRequestDto)))
+                        .content(objectMapper.writeValueAsString(orderRequestDto))
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isNotFound())  // Verify 404 status
                 .andExpect(jsonPath("$.title").value("Product Not Found"))  // Check the error title
                 .andExpect(jsonPath("$.status").value(404))  // Ensure status code is 404
@@ -143,15 +170,20 @@ public class OrderControllerIT extends AbstractIt {
      * product details (name, total price, and quantity) for those products.
      */
     @Test
+    @WithMockUser(roles = "COSMO_BOSS")
     void shouldReturnPopularOrderedProductsWithCorrectDetails() throws Exception {
         // Place an order using the existing method
         mockMvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(getOrderRequestDto())))
+                        .content(objectMapper.writeValueAsString(getOrderRequestDto()))
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isOk());
 
         // Validate popular ordered products
-        mockMvc.perform(get(BASE_URL + "/popular-ordered-products"))
+        mockMvc.perform(get(BASE_URL + "/popular-ordered-products")
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())  // Ensure the response is an array
                 .andExpect(jsonPath("$.length()").value(2))  // Ensure there are 2 products in the response
@@ -171,6 +203,7 @@ public class OrderControllerIT extends AbstractIt {
      * - The projection fields (orderReference, totalPrice, status) are validated.
      */
     @Test
+    @WithMockUser(roles = "COSMO_ADMIN")
     void getOrdersByCustomerEmail_shouldReturnOrderProjections() throws Exception {
         // Get existing products from the repository
         List<Product> existingProducts = productService.getProducts();
@@ -219,19 +252,25 @@ public class OrderControllerIT extends AbstractIt {
         // Register the first order
         mockMvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(firstOrderRequestBody))
+                        .content(firstOrderRequestBody)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isOk());
 
         // Register the second order
         mockMvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(secondOrderRequestBody))
+                        .content(secondOrderRequestBody)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isOk());
 
         // Search for orders by the first email
         String emailToSearch = "cat_owner1@cosmocats.com";
         mockMvc.perform(get(BASE_URL + "/search")
-                        .param("email", emailToSearch))
+                        .param("email", emailToSearch)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())  // Ensure the response is an array
                 .andExpect(jsonPath("$.length()").value(1))  // Ensure only one order projection is returned
@@ -249,6 +288,7 @@ public class OrderControllerIT extends AbstractIt {
      * - The updated status is correctly reflected when fetching the order.
      */
     @Test
+    @WithMockUser(roles = "COSMO_ADMIN")
     void registerOrderAndUpdateStatus_shouldReflectUpdatedStatus() throws Exception {
         // Get existing products from the repository
         List<Product> existingProducts = productService.getProducts();
@@ -278,7 +318,9 @@ public class OrderControllerIT extends AbstractIt {
         // Register a new order and capture the returned ID
         String responseContent = mockMvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(orderRequestBody))
+                        .content(orderRequestBody)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
@@ -288,18 +330,24 @@ public class OrderControllerIT extends AbstractIt {
         UUID orderId = UUID.fromString(JsonPath.parse(responseContent).read("$.id"));
 
         // Retrieve the order and verify its initial status is PENDING
-        mockMvc.perform(get(BASE_URL + "/{id}", orderId))
+        mockMvc.perform(get(BASE_URL + "/{id}", orderId)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PENDING"));
 
         // Update the order status to PROCESSING
         mockMvc.perform(put(BASE_URL + "/{id}", orderId)
-                        .param("status", "PROCESSING"))
+                        .param("status", "PROCESSING")
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PROCESSING"));
 
         // Retrieve the order again and verify the updated status
-        mockMvc.perform(get(BASE_URL + "/{id}", orderId))
+        mockMvc.perform(get(BASE_URL + "/{id}", orderId)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PROCESSING"));
     }
@@ -312,6 +360,7 @@ public class OrderControllerIT extends AbstractIt {
      * - After deletion, no orders remain in the repository.
      */
     @Test
+    @WithMockUser(roles = "COSMO_ADMIN")
     void shouldCreateAndDeleteOrderById() throws Exception {
         // Verify no orders exist before the test
         assert orderRepository.findAll().stream().toList().isEmpty();
@@ -322,7 +371,9 @@ public class OrderControllerIT extends AbstractIt {
         // Register a new order and capture the returned ID
         String responseContent = mockMvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(orderRequestBody))
+                        .content(orderRequestBody)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
@@ -335,14 +386,18 @@ public class OrderControllerIT extends AbstractIt {
         assert orderRepository.findByNaturalId(orderId).isPresent();
 
         // Delete the order by ID
-        mockMvc.perform(delete(BASE_URL + "/{id}", orderId))
+        mockMvc.perform(delete(BASE_URL + "/{id}", orderId)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isNoContent());
 
         // Verify the order is no longer in the repository
         assert orderRepository.findByNaturalId(orderId).isEmpty();
 
         // Ensure no orders exist in the system
-        mockMvc.perform(get(BASE_URL))
+        mockMvc.perform(get(BASE_URL)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf())) //Move this token to constants
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0)); // Ensure there are no orders in the response
     }
@@ -354,12 +409,15 @@ public class OrderControllerIT extends AbstractIt {
      *   the system returns a 204 No Content response.
      */
     @Test
+    @WithMockUser(roles = "TRUSTED_CUSTOMER")
     void deleteNonExistentOrder_shouldReturnNoContentResponse() throws Exception {
         // UUID for a non-existent order
         UUID nonExistentOrderId = UUID.fromString("77777777-0000-0000-0000-000000000001");
 
         // Attempt to delete the non-existent order by ID
-        mockMvc.perform(delete(BASE_URL + "/{id}", nonExistentOrderId))
+        mockMvc.perform(delete(BASE_URL + "/{id}", nonExistentOrderId)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isNoContent());
     }
 
@@ -436,6 +494,7 @@ public class OrderControllerIT extends AbstractIt {
      * - The response contains proper validation error details.
      */
     @Test
+    @WithMockUser(roles = "TRUSTED_CUSTOMER")
     void createOrderWithZeroQuantity_shouldFailValidation() throws Exception {
         // Fetch an existing product ID
         UUID existingProductId = productService.getProducts().get(0).getId();
@@ -458,7 +517,9 @@ public class OrderControllerIT extends AbstractIt {
         // Perform the request and validate the response
         mockMvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(invalidRequestBody))
+                        .content(invalidRequestBody)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value("urn:problem-type:validation-error"))
                 .andExpect(jsonPath("$.title").value("Field Validation Exception"))
@@ -466,5 +527,69 @@ public class OrderControllerIT extends AbstractIt {
                 .andExpect(jsonPath("$.detail").value("Request validation failed"))
                 .andExpect(jsonPath("$.invalidParams[0].fieldName").value("orderEntries[0].quantity"))
                 .andExpect(jsonPath("$.invalidParams[0].reason").value("Quantity must be greater than 0"));
+    }
+
+    /**
+     * Test for verifying that a user with the `TRUSTED_CUSTOMER` role can successfully create an order.
+     * This test ensures:
+     * - The order is placed successfully with a 200 OK response.
+     * - The response contains an array of order entries with the correct number of items.
+     */
+    @Test
+    @WithMockUser(roles = "TRUSTED_CUSTOMER")
+    void createOrder_asTrustedCustomer_shouldReturnSuccessfulResponse() throws Exception {
+
+        // Place new order and check that we have 2 entries in the response
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(getOrderRequestDto()))
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
+                .andExpect(status().isOk())  // Verify 200 OK status
+                .andExpect(jsonPath("$.entries").isArray())  // Validate "entries" array exists
+                .andExpect(jsonPath("$.entries.length()").value(2));  // Ensure 2 entries in the response
+    }
+
+    /**
+     * Test for ensuring a user with the role `COSMO_MARKETOLOGIST` cannot create an order.
+     * This test verifies that:
+     * - The system denies access with a 403 Forbidden response.
+     * - The error response contains the correct structure and fields.
+     */
+    @Test
+    @WithMockUser(roles = "COSMO_MARKETOLOGIST")
+    void createOrder_withMarketologistRole_shouldReturnForbiddenResponse() throws Exception {
+
+
+        // Attempt to place a new order
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(getOrderRequestDto()))
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
+                .andExpect(status().isForbidden())  // Verify 403 Forbidden status
+                .andExpect(jsonPath("$.type").value("authorization-denied"))  // Validate response type
+                .andExpect(jsonPath("$.title").value("Forbidden"))  // Validate title field
+                .andExpect(jsonPath("$.status").value(403))  // Validate status code
+                .andExpect(jsonPath("$.detail").value("Access Denied"))  // Validate detail message
+                .andExpect(jsonPath("$.instance").value(BASE_URL));  // Validate instance URI
+    }
+
+    /**
+     * Test for ensuring an unauthorized user cannot create an order.
+     * This test verifies that:
+     * - The system denies access with a 401 Unauthorized response.
+     * - The error response contains the correct headers and status code.
+     */
+    @Test
+    void createOrder_asUnauthorizedUser_shouldReturnUnauthorizedResponse() throws Exception {
+
+        // Attempt to place a new order
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(getOrderRequestDto()))
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
+                .andExpect(status().isUnauthorized());  // Verify 401 Unauthorized status
     }
 }

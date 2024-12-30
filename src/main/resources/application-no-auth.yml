@@ -1,0 +1,5 @@
+auth:
+  claims:
+    galaxy: Andromeda-42
+    email_verified: true
+    email: intergalactic.paws@catmail.meow

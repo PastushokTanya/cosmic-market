@@ -7,7 +7,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -19,7 +22,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.tpastushok.cosmocats.util.SecurityUtil.API_KEY_HEADER;
 import static org.hamcrest.Matchers.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -38,17 +43,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 class ThirdPartyServiceIT extends AbstractIt {
 
+    public static final String BEARER_TOKEN_STUB = "Bearer token stub";
+
     @Value("${application.competitors-price-observer.url-wildcard}")
     private String competitorsObserverUrlWildcard;
 
     @Autowired
     private MockMvc mockMvc;
 
+    @MockBean
+    JwtDecoder jwtDecoder;
+
     /**
      * Test retrieving prices from a third-party service.
      * Simulates a successful response from the third-party service and verifies
      * that the controller correctly processes and returns the response.
      */
+    @WithMockUser(roles = "COSMO_MARKETOLOGIST")
     @Test
     void getCompetitorPrices_shouldReturnPricesSuccessfully() throws Exception {
         // Arrange
@@ -71,7 +82,9 @@ class ThirdPartyServiceIT extends AbstractIt {
                                 """.formatted(productId))));
 
         // Act & Assert
-        mockMvc.perform(get("/api/v1/products/{productId}/competitor-price-observer", productId))
+        mockMvc.perform(get("/api/v1/products/{productId}/competitor-price-observer", productId)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productUuid", is(productId.toString())))
                 .andExpect(jsonPath("$.stores", hasSize(2)))
@@ -85,6 +98,7 @@ class ThirdPartyServiceIT extends AbstractIt {
      * Verifies that the controller returns a meaningful error message and status code
      * when the third-party service responds with a 502 Bad Gateway.
      */
+    @WithMockUser(roles = "COSMO_MARKETOLOGIST")
     @Test
     void getCompetitorPrices_whenServiceReturnsBadGateway_shouldReturnInternalServerError() throws Exception {
         // Arrange
@@ -96,7 +110,9 @@ class ThirdPartyServiceIT extends AbstractIt {
                 .willReturn(aResponse().withStatus(HttpStatus.BAD_GATEWAY.value())));
 
         // Act & Assert
-        mockMvc.perform(get("/api/v1/products/{productId}/competitor-price-observer", productId))
+        mockMvc.perform(get("/api/v1/products/{productId}/competitor-price-observer", productId)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.type").value("third-party-service-error"))
                 .andExpect(jsonPath("$.title").value("Error communicating with third-party service"))
@@ -112,6 +128,7 @@ class ThirdPartyServiceIT extends AbstractIt {
      * Ensures the controller returns a relevant error response when the third-party
      * service responds with a 500 Internal Server Error.
      */
+    @WithMockUser(roles = "COSMO_MARKETOLOGIST")
     @Test
     void getCompetitorPrices_whenServiceReturnsInternalServerError_shouldReturnInternalServerError() throws Exception {
         // Arrange
@@ -122,7 +139,9 @@ class ThirdPartyServiceIT extends AbstractIt {
                 .willReturn(aResponse().withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())));
 
         // Act & Assert
-        mockMvc.perform(get("/api/v1/products/{productId}/competitor-price-observer", productId))
+        mockMvc.perform(get("/api/v1/products/{productId}/competitor-price-observer", productId)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.type").value("third-party-service-error"))
                 .andExpect(jsonPath("$.title").value("Error communicating with third-party service"))
@@ -138,6 +157,7 @@ class ThirdPartyServiceIT extends AbstractIt {
      * Ensures that the controller correctly processes the response and returns
      * an empty list of stores.
      */
+    @WithMockUser(roles = "COSMO_MARKETOLOGIST")
     @Test
     void getCompetitorPrices_whenServiceReturnsEmptyStores_shouldReturnEmptyList() throws Exception {
         // Arrange
@@ -155,7 +175,9 @@ class ThirdPartyServiceIT extends AbstractIt {
                                 """.formatted(productId))));
 
         // Act & Assert
-        mockMvc.perform(get("/api/v1/products/{productId}/competitor-price-observer", productId))
+        mockMvc.perform(get("/api/v1/products/{productId}/competitor-price-observer", productId)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productUuid", is(productId.toString())))
                 .andExpect(jsonPath("$.stores", hasSize(0))); // Verifying the empty stores list
