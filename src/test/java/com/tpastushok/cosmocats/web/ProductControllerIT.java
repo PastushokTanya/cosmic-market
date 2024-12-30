@@ -312,6 +312,48 @@ public class ProductControllerIT extends AbstractIt {
     }
 
     /**
+     * Test to ensure that a user with the `TRUSTED_CUSTOMER` role cannot update a product.
+     * The test validates that the response returns a 403 Forbidden status and includes the
+     * appropriate error message in the response body.
+     */
+    @Test
+    @WithMockUser(roles = "TRUSTED_CUSTOMER")
+    void updateProduct_asTrustedCustomer_shouldReturnForbidden() throws Exception {
+        UUID productId = UUID.randomUUID(); // Example ID for the test
+
+        mockMvc.perform(put(BASE_URL + "/{id}", productId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf())
+                        .content(objectMapper.writeValueAsString(newProductData)))
+                .andExpectAll(
+                        status().isForbidden(),
+                        jsonPath("$.type").value("authorization-denied"),  // Validate response type
+                        jsonPath("$.title").value("Forbidden"),  // Validate title field
+                        jsonPath("$.status").value(403),  // Validate status code
+                        jsonPath("$.detail").value("Access Denied"),  // Validate detail message
+                        jsonPath("$.instance").value(BASE_URL + "/" + productId)
+                );
+    }
+
+    /**
+     * Test to ensure that an unauthorized user (no authentication) cannot update a product.
+     * The test validates that the response returns a 401 Unauthorized status and includes the
+     * appropriate error message in the response headers.
+     */
+    @Test
+    void updateProduct_asUnauthenticatedUser_shouldReturnUnauthorized() throws Exception {
+        UUID productId = UUID.randomUUID(); // Example ID for the test
+
+        mockMvc.perform(put(BASE_URL + "/{id}", productId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf())
+                        .content(objectMapper.writeValueAsString(newProductData)))
+                .andExpect(status().isUnauthorized());   // Verify 401 Unauthorized status
+    }
+
+    /**
      * Test updating a product with an invalid price (non-positive).
      * Expects a 400 Bad Request status and a relevant validation error message.
      */

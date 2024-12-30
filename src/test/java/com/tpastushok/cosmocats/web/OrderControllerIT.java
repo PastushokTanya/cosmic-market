@@ -38,8 +38,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @DirtiesContext
@@ -528,5 +527,69 @@ public class OrderControllerIT extends AbstractIt {
                 .andExpect(jsonPath("$.detail").value("Request validation failed"))
                 .andExpect(jsonPath("$.invalidParams[0].fieldName").value("orderEntries[0].quantity"))
                 .andExpect(jsonPath("$.invalidParams[0].reason").value("Quantity must be greater than 0"));
+    }
+
+    /**
+     * Test for verifying that a user with the `TRUSTED_CUSTOMER` role can successfully create an order.
+     * This test ensures:
+     * - The order is placed successfully with a 200 OK response.
+     * - The response contains an array of order entries with the correct number of items.
+     */
+    @Test
+    @WithMockUser(roles = "TRUSTED_CUSTOMER")
+    void createOrder_asTrustedCustomer_shouldReturnSuccessfulResponse() throws Exception {
+
+        // Place new order and check that we have 2 entries in the response
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(getOrderRequestDto()))
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
+                .andExpect(status().isOk())  // Verify 200 OK status
+                .andExpect(jsonPath("$.entries").isArray())  // Validate "entries" array exists
+                .andExpect(jsonPath("$.entries.length()").value(2));  // Ensure 2 entries in the response
+    }
+
+    /**
+     * Test for ensuring a user with the role `COSMO_MARKETOLOGIST` cannot create an order.
+     * This test verifies that:
+     * - The system denies access with a 403 Forbidden response.
+     * - The error response contains the correct structure and fields.
+     */
+    @Test
+    @WithMockUser(roles = "COSMO_MARKETOLOGIST")
+    void createOrder_withMarketologistRole_shouldReturnForbiddenResponse() throws Exception {
+
+
+        // Attempt to place a new order
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(getOrderRequestDto()))
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
+                .andExpect(status().isForbidden())  // Verify 403 Forbidden status
+                .andExpect(jsonPath("$.type").value("authorization-denied"))  // Validate response type
+                .andExpect(jsonPath("$.title").value("Forbidden"))  // Validate title field
+                .andExpect(jsonPath("$.status").value(403))  // Validate status code
+                .andExpect(jsonPath("$.detail").value("Access Denied"))  // Validate detail message
+                .andExpect(jsonPath("$.instance").value(BASE_URL));  // Validate instance URI
+    }
+
+    /**
+     * Test for ensuring an unauthorized user cannot create an order.
+     * This test verifies that:
+     * - The system denies access with a 401 Unauthorized response.
+     * - The error response contains the correct headers and status code.
+     */
+    @Test
+    void createOrder_asUnauthorizedUser_shouldReturnUnauthorizedResponse() throws Exception {
+
+        // Attempt to place a new order
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(getOrderRequestDto()))
+                        .header(API_KEY_HEADER, BEARER_TOKEN_STUB)
+                        .with(csrf()))
+                .andExpect(status().isUnauthorized());  // Verify 401 Unauthorized status
     }
 }
